@@ -1,0 +1,225 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Parallax } from "../_components/parallax";
+import { MoneyRain } from "../_components/money-rain";
+import { dict, isLocale, locales, type Locale } from "../lib/i18n";
+
+const partners = [
+  "AzBrand",
+  "Baku Growth",
+  "Caspian Media",
+  "Nova Digital",
+  "MarketLab",
+  "AdsPro",
+  "RetailUp",
+  "ScaleX",
+];
+
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
+export default async function LocalizedPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale: localeParam } = await params;
+
+  if (!isLocale(localeParam)) {
+    notFound();
+  }
+
+  const locale: Locale = localeParam;
+  const t = dict[locale];
+
+  return (
+    <main className="landing">
+      <Parallax />
+
+      <header className="header">
+        <div className="container header__inner">
+          <Link className="logo" href={`/${locale}`}>
+            <span className="logo__word">sapiens</span>
+            <span className="logo__badge">PAY</span>
+          </Link>
+
+          <div className="header__actions">
+            <div className="lang-switch" role="group" aria-label="Language switcher">
+              {locales.map((item) => (
+                <Link
+                  key={item}
+                  href={`/${item}`}
+                  className={item === locale ? "active" : ""}
+                  aria-current={item === locale ? "page" : undefined}
+                >
+                  {item.toUpperCase()}
+                </Link>
+              ))}
+            </div>
+
+            <a className="link-draw" href="#muraciet">
+              {t.headerCta}
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <section className="hero section" id="home">
+        <MoneyRain />
+        <div className="container">
+          <p className="tag" data-parallax data-speed="-0.03">
+            {t.heroTag}
+          </p>
+          <h1>{t.heroTitle}</h1>
+          <p className="lead">{t.heroLead}</p>
+          <div className="hero__actions">
+            <a className="btn btn--primary" href="#muraciet">
+              {t.heroPrimary}
+            </a>
+            <a className="btn btn--ghost link-draw" href="#ustunlukler">
+              {t.heroSecondary}
+            </a>
+          </div>
+        </div>
+        <div className="orb orb--one" data-parallax data-speed="0.08" />
+        <div className="orb orb--two" data-parallax data-speed="0.12" />
+      </section>
+
+      <section className="section partners" id="emekdasliq">
+        <div className="container">
+          <h2>{t.partnersTitle}</h2>
+          <p className="partners__lead">{t.partnersLead}</p>
+        </div>
+
+        <div className="marquee marquee--left">
+          <div className="marquee__track">
+            {[...partners, ...partners].map((name, index) => (
+              <div className="partner-chip" key={`left-${name}-${index}`}>
+                {name}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="marquee marquee--right">
+          <div className="marquee__track">
+            {[...partners.slice().reverse(), ...partners.slice().reverse()].map(
+              (name, index) => (
+                <div className="partner-chip" key={`right-${name}-${index}`}>
+                  {name}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="ustunlukler">
+        <div className="container">
+          <h2>{t.aboutTitle}</h2>
+          <ul className="grid">
+            <li className="card" data-parallax data-speed="0.03">
+              <h3>{t.card1Title}</h3>
+              <p>{t.card1Text}</p>
+            </li>
+            <li className="card" data-parallax data-speed="0.05">
+              <h3>{t.card2Title}</h3>
+              <p>{t.card2Text}</p>
+            </li>
+            <li className="card" data-parallax data-speed="0.04">
+              <h3>{t.card3Title}</h3>
+              <p>{t.card3Text}</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section className="section contact" id="elaqe">
+        <div className="container contact__inner">
+          <div>
+            <h2>{t.contactTitle}</h2>
+            <p className="partners__lead">{t.contactLead}</p>
+          </div>
+
+          <form className="contact-form" action="#" method="post">
+            <label>
+              {t.formName}
+              <input type="text" name="fullname" placeholder={t.formNamePlaceholder} required />
+            </label>
+            <label>
+              {t.formEmail}
+              <input type="email" name="email" placeholder={t.formEmailPlaceholder} required />
+            </label>
+            <label>
+              {t.formPhone}
+              <input type="tel" name="phone" placeholder={t.formPhonePlaceholder} />
+            </label>
+            <label>
+              {t.formMessage}
+              <textarea
+                name="message"
+                rows={5}
+                placeholder={t.formMessagePlaceholder}
+                required
+              />
+            </label>
+            <button type="submit" className="btn btn--primary">
+              {t.formSubmit}
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="section section--cta" id="muraciet">
+        <div className="container cta">
+          <p>{t.ctaText}</p>
+          <a className="btn btn--primary" href="mailto:info@sapiens-pay.com">
+            {t.ctaButton}
+          </a>
+        </div>
+      </section>
+
+      <section className="section socials" id="socials">
+        <div className="container">
+          <h2>{t.socialsTitle}</h2>
+          <p className="partners__lead">{t.socialsLead}</p>
+
+          <div className="socials__grid">
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+              {t.socialInstagram}
+            </a>
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+              {t.socialFacebook}
+            </a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
+              {t.socialLinkedin}
+            </a>
+            <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">
+              {t.socialTiktok}
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <footer className="site-footer">
+        <div className="container site-footer__inner">
+          <p>
+            © {new Date().getFullYear()} Sapiens Pay. {t.footerRights}
+          </p>
+          <div className="site-footer__links">
+            <a href="#">{t.footerPrivacy}</a>
+            <a href="#">{t.footerTerms}</a>
+            <a href="#">{t.footerCookies}</a>
+          </div>
+        </div>
+      </footer>
+
+      <nav className="mobile-footer-nav" aria-label="Mobile navigation">
+        <a href="#home">{t.mobileHome}</a>
+        <a href="tel:+994000000000">{t.mobileCall}</a>
+        <a href="#ustunlukler">{t.mobileAbout}</a>
+      </nav>
+    </main>
+  );
+}

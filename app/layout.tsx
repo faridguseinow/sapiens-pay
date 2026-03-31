@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import "@fontsource/poppins/400.css";
+import "@fontsource/poppins/500.css";
+import "@fontsource/poppins/600.css";
+import "@fontsource/poppins/700.css";
 import "./globals.scss";
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
-});
 
 export const metadata: Metadata = {
   title: "Sapiens Pay",
@@ -21,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="az">
-      <body className={poppins.variable}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
