@@ -5,14 +5,10 @@ import { MoneyRain } from "../_components/money-rain";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
 
 const partners = [
-  "AzBrand",
-  "Baku Growth",
-  "Caspian Media",
-  "Nova Digital",
-  "MarketLab",
-  "AdsPro",
-  "RetailUp",
-  "ScaleX",
+  "Duomo Records",
+  "Fly Friendly",
+  "Nurs Boymax",
+  "Hurucco"
 ];
 
 export function generateStaticParams() {

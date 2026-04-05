@@ -53,7 +53,7 @@ export const dict: Record<Locale, Dictionary> = {
   az: {
     headerCta: "Müraciət et",
     heroTag: "Sapiens Pay",
-    heroTitle: "Reklam büdcənizi bank komissiyalarına qurban verməyin.",
+    heroTitle: "Reklam büdcənizi bank komissiyalarına qurban verməyin!",
     heroLead:
       "Meta, Google Ads və TikTok reklam ödənişləri üçün xarici bank kartlarının rəsmi açılışı. Daha az xərc, daha çox nəticə.",
     heroPrimary: "İndi başla",
@@ -100,7 +100,7 @@ export const dict: Record<Locale, Dictionary> = {
   ru: {
     headerCta: "Оставить заявку",
     heroTag: "Sapiens Pay",
-    heroTitle: "Не жертвуйте рекламным бюджетом ради банковских комиссий.",
+    heroTitle: "Не жертвуйте рекламным бюджетом ради банковских комиссий!",
     heroLead:
       "Официальное открытие зарубежных банковских карт для платежей в Meta, Google Ads и TikTok. Меньше расходов, больше результата.",
     heroPrimary: "Начать сейчас",
@@ -148,7 +148,7 @@ export const dict: Record<Locale, Dictionary> = {
   en: {
     headerCta: "Apply now",
     heroTag: "Sapiens Pay",
-    heroTitle: "Stop sacrificing your ad budget to bank fees.",
+    heroTitle: "Stop sacrificing your ad budget to bank fees!",
     heroLead:
       "Official foreign bank card setup for Meta, Google Ads, and TikTok payments. Lower costs, stronger performance.",
     heroPrimary: "Start now",

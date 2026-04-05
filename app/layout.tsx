@@ -8,7 +8,7 @@ import "./globals.scss";
 export const metadata: Metadata = {
   title: "Sapiens Pay",
   description:
-    "Reklam odenisleri ucun xarici bank kartlarinin resmi acilisi uzre pesekar destek.",
+    "Meta, Google Ads və TikTok reklam ödənişləri üçün xarici bank kartlarının rəsmi açılışı. Daha az xərc, daha çox nəticə.",
 };
 
 export default function RootLayout({
@@ -18,7 +18,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="az">
-      <body>{children}</body>
+      <body>
+        {children}
+      </body>
     </html>
   );
 }
