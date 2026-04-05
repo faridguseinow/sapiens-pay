@@ -21,6 +21,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="az">
+      <head>
+        <script src="https://app.inlyne.ai/scripts/preview.js" async></script>
+      </head>
       <body>
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
