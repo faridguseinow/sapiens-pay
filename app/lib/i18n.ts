@@ -7,6 +7,8 @@ export const isLocale = (value: string): value is Locale =>
 
 export type Dictionary = {
   headerCta: string;
+  headerHome: string;
+  langSwitcherLabel: string;
   heroTag: string;
   heroTitle: string;
   heroLead: string;
@@ -47,11 +49,17 @@ export type Dictionary = {
   footerPrivacy: string;
   footerTerms: string;
   footerCookies: string;
+  legalUpdated: string;
+  legalContents: string;
+  legalContactTitle: string;
+  legalContactLead: string;
 };
 
 export const dict: Record<Locale, Dictionary> = {
   az: {
     headerCta: "Müraciət et",
+    headerHome: "Ana səhifə",
+    langSwitcherLabel: "Dil seçimi",
     heroTag: "Sapiens Pay",
     heroTitle: "Reklam büdcənizi bank komissiyalarına qurban verməyin!",
     heroLead:
@@ -96,9 +104,16 @@ export const dict: Record<Locale, Dictionary> = {
     footerPrivacy: "Məxfilik siyasəti",
     footerTerms: "İstifadə şərtləri",
     footerCookies: "Cookie siyasəti",
+    legalUpdated: "Son yenilənmə tarixi",
+    legalContents: "Bölmələr",
+    legalContactTitle: "Əlaqə",
+    legalContactLead:
+      "Bu sənədlərlə bağlı sualınız varsa, bizimlə e-poçt vasitəsilə əlaqə saxlaya bilərsiniz.",
   },
   ru: {
     headerCta: "Оставить заявку",
+    headerHome: "Главная",
+    langSwitcherLabel: "Выбор языка",
     heroTag: "Sapiens Pay",
     heroTitle: "Не жертвуйте рекламным бюджетом ради банковских комиссий!",
     heroLead:
@@ -144,9 +159,16 @@ export const dict: Record<Locale, Dictionary> = {
     footerPrivacy: "Политика конфиденциальности",
     footerTerms: "Условия использования",
     footerCookies: "Политика cookie",
+    legalUpdated: "Дата последнего обновления",
+    legalContents: "Разделы",
+    legalContactTitle: "Контакты",
+    legalContactLead:
+      "Если у вас есть вопросы по этим документам, напишите нам по электронной почте.",
   },
   en: {
     headerCta: "Apply now",
+    headerHome: "Home",
+    langSwitcherLabel: "Language switcher",
     heroTag: "Sapiens Pay",
     heroTitle: "Stop sacrificing your ad budget to bank fees!",
     heroLead:
@@ -191,5 +213,10 @@ export const dict: Record<Locale, Dictionary> = {
     footerPrivacy: "Privacy Policy",
     footerTerms: "Terms of Use",
     footerCookies: "Cookie Policy",
+    legalUpdated: "Last updated",
+    legalContents: "Contents",
+    legalContactTitle: "Contact",
+    legalContactLead:
+      "If you have any questions about these documents, you can contact us by email.",
   },
 };

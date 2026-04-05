@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MobileFooterNav, SiteFooter, SiteHeader } from "../_components/site-chrome";
 import { Parallax } from "../_components/parallax";
 import { MoneyRain } from "../_components/money-rain";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
@@ -21,7 +21,7 @@ export default async function LocalizedPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale: localeParam } = await params;
-  
+
   if (!isLocale(localeParam)) {
     notFound();
   }
@@ -30,36 +30,9 @@ export default async function LocalizedPage({
   const t = dict[locale];
 
   return (
-    <main className="landing">
+    <main className="landing" lang={locale}>
       <Parallax />
-
-      <header className="header">
-        <div className="container header__inner">
-          <Link className="logo" href={`/${locale}`}>
-            <span className="logo__word">sapiens</span>
-            <span className="logo__badge">PAY</span>
-          </Link>
-
-          <div className="header__actions">
-            <div className="lang-switch" role="group" aria-label="Language switcher">
-              {locales.map((item) => (
-                <Link
-                  key={item}
-                  href={`/${item}`}
-                  className={item === locale ? "active" : ""}
-                  aria-current={item === locale ? "page" : undefined}
-                >
-                  {item.toUpperCase()}
-                </Link>
-              ))}
-            </div>
-
-            <a className="link-draw" href="#muraciet">
-              {t.headerCta}
-            </a>
-          </div>
-        </div>
-      </header>
+      <SiteHeader locale={locale} actionHref="#muraciet" actionLabel={t.headerCta} />
 
       <section className="hero section" id="home">
         <MoneyRain />
@@ -95,18 +68,6 @@ export default async function LocalizedPage({
                 {name}
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="marquee marquee--right">
-          <div className="marquee__track">
-            {[...partners.slice().reverse(), ...partners.slice().reverse()].map(
-              (name, index) => (
-                <div className="partner-chip" key={`right-${name}-${index}`}>
-                  {name}
-                </div>
-              )
-            )}
           </div>
         </div>
       </section>
@@ -198,24 +159,8 @@ export default async function LocalizedPage({
         </div>
       </section>
 
-      <footer className="site-footer">
-        <div className="container site-footer__inner">
-          <p>
-            © {new Date().getFullYear()} Sapiens Pay. {t.footerRights}
-          </p>
-          <div className="site-footer__links">
-            <a href="#">{t.footerPrivacy}</a>
-            <a href="#">{t.footerTerms}</a>
-            <a href="#">{t.footerCookies}</a>
-          </div>
-        </div>
-      </footer>
-
-      <nav className="mobile-footer-nav" aria-label="Mobile navigation">
-        <a href="#home">{t.mobileHome}</a>
-        <a href="tel:+994000000000">{t.mobileCall}</a>
-        <a href="#ustunlukler">{t.mobileAbout}</a>
-      </nav>
+      <SiteFooter locale={locale} />
+      <MobileFooterNav locale={locale} />
     </main>
   );
 }
