@@ -21,7 +21,7 @@ export default async function LocalizedPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale: localeParam } = await params;
-
+  
   if (!isLocale(localeParam)) {
     notFound();
   }
