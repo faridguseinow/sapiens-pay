@@ -65,7 +65,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Создание сайта - Farid Huseynov
+            {t.footerFarid}
           </a>
         </div>
         <div className="site-footer__links">
