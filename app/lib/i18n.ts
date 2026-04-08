@@ -63,6 +63,7 @@ export type Dictionary = {
   socialLinkedin: string;
   socialTiktok: string;
   footerRights: string;
+  footerFarid: string;
   footerPrivacy: string;
   footerTerms: string;
   footerCookies: string;
@@ -144,6 +145,7 @@ export const dict: Record<Locale, Dictionary> = {
     socialLinkedin: "LinkedIn",
     socialTiktok: "TikTok",
     footerRights: "Bütün hüquqlar qorunur.",
+    footerFarid: "Saytın hazırlanması - Farid Huseynov",
     footerPrivacy: "Məxfilik siyasəti",
     footerTerms: "İstifadə şərtləri",
     footerCookies: "Cookie siyasəti",
@@ -225,6 +227,7 @@ export const dict: Record<Locale, Dictionary> = {
     socialLinkedin: "LinkedIn",
     socialTiktok: "TikTok",
     footerRights: "Все права защищены.",
+    footerFarid: "Создание сайта - Farid Huseynov",
     footerPrivacy: "Политика конфиденциальности",
     footerTerms: "Условия использования",
     footerCookies: "Политика cookie",
@@ -305,6 +308,7 @@ export const dict: Record<Locale, Dictionary> = {
     socialLinkedin: "LinkedIn",
     socialTiktok: "TikTok",
     footerRights: "All rights reserved.",
+    footerFarid: "Website by Farid Huseynov",
     footerPrivacy: "Privacy Policy",
     footerTerms: "Terms of Use",
     footerCookies: "Cookie Policy",
