@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { MobileFooterNav, SiteFooter, SiteHeader } from "../_components/site-chrome";
 import { Parallax } from "../_components/parallax";
 import { MoneyRain } from "../_components/money-rain";
+import { AboutStory } from "../_components/about-story";
+import { ServicesShowcase } from "../_components/services-showcase";
+import { LeadQuiz } from "../_components/lead-quiz";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
 
 const partners = [
@@ -46,7 +49,7 @@ export default async function LocalizedPage({
             <a className="btn btn--primary" href="#muraciet">
               {t.heroPrimary}
             </a>
-            <a className="btn btn--ghost link-draw" href="#ustunlukler">
+            <a className="btn btn--ghost link-draw" href="#about">
               {t.heroSecondary}
             </a>
           </div>
@@ -54,6 +57,20 @@ export default async function LocalizedPage({
         <div className="orb orb--one" data-parallax data-speed="0.08" />
         <div className="orb orb--two" data-parallax data-speed="0.12" />
       </section>
+
+      <ServicesShowcase t={t} />
+
+      <AboutStory
+        eyebrow={t.aboutStoryEyebrow}
+        title={t.aboutStoryTitle}
+        lead={t.aboutStoryLead}
+        paragraphs={[
+          t.aboutStoryParagraph1,
+          t.aboutStoryParagraph2,
+          t.aboutStoryParagraph3,
+          t.aboutStoryParagraph4,
+        ]}
+      />
 
       <section className="section partners" id="emekdasliq">
         <div className="container">
@@ -76,15 +93,15 @@ export default async function LocalizedPage({
         <div className="container">
           <h2>{t.aboutTitle}</h2>
           <ul className="grid">
-            <li className="card" data-parallax data-speed="0.03">
+            <li className="card">
               <h3>{t.card1Title}</h3>
               <p>{t.card1Text}</p>
             </li>
-            <li className="card" data-parallax data-speed="0.05">
+            <li className="card">
               <h3>{t.card2Title}</h3>
               <p>{t.card2Text}</p>
             </li>
-            <li className="card" data-parallax data-speed="0.04">
+            <li className="card">
               <h3>{t.card3Title}</h3>
               <p>{t.card3Text}</p>
             </li>
@@ -92,50 +109,7 @@ export default async function LocalizedPage({
         </div>
       </section>
 
-      <section className="section contact" id="elaqe">
-        <div className="container contact__inner">
-          <div>
-            <h2>{t.contactTitle}</h2>
-            <p className="partners__lead">{t.contactLead}</p>
-          </div>
-
-          <form className="contact-form" action="#" method="post">
-            <label>
-              {t.formName}
-              <input type="text" name="fullname" placeholder={t.formNamePlaceholder} required />
-            </label>
-            <label>
-              {t.formEmail}
-              <input type="email" name="email" placeholder={t.formEmailPlaceholder} required />
-            </label>
-            <label>
-              {t.formPhone}
-              <input type="tel" name="phone" placeholder={t.formPhonePlaceholder} />
-            </label>
-            <label>
-              {t.formMessage}
-              <textarea
-                name="message"
-                rows={5}
-                placeholder={t.formMessagePlaceholder}
-                required
-              />
-            </label>
-            <button type="submit" className="btn btn--primary">
-              {t.formSubmit}
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section className="section section--cta" id="muraciet">
-        <div className="container cta">
-          <p>{t.ctaText}</p>
-          <a className="btn btn--primary" href="mailto:info@sapiens-pay.com">
-            {t.ctaButton}
-          </a>
-        </div>
-      </section>
+      <LeadQuiz locale={locale} />
 
       <section className="section socials" id="socials">
         <div className="container">

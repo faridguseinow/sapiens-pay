@@ -75,7 +75,7 @@ export function MobileFooterNav({ locale }: { locale: Locale }) {
     <nav className="mobile-footer-nav" aria-label="Mobile navigation">
       <a href="#home">{t.mobileHome}</a>
       <a href="tel:+994000000000">{t.mobileCall}</a>
-      <a href="#ustunlukler">{t.mobileAbout}</a>
+      <a href="#about">{t.mobileAbout}</a>
     </nav>
   );
 }
