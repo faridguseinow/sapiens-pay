@@ -55,9 +55,19 @@ export function SiteFooter({ locale }: { locale: Locale }) {
   return (
     <footer className="site-footer">
       <div className="container site-footer__inner">
-        <p>
-          © {new Date().getFullYear()} Sapiens Pay. {t.footerRights}
-        </p>
+        <div className="site-footer__meta">
+          <p>
+            © {new Date().getFullYear()} Sapiens Pay. {t.footerRights}
+          </p>
+          <a
+            className="site-footer__credit"
+            href="https://faridguseinow.framer.website/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Создание сайта - Farid Huseynov
+          </a>
+        </div>
         <div className="site-footer__links">
           <Link href={`/${locale}/privacy-policy`}>{t.footerPrivacy}</Link>
           <Link href={`/${locale}/terms-of-use`}>{t.footerTerms}</Link>

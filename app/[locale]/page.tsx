@@ -117,16 +117,16 @@ export default async function LocalizedPage({
           <p className="partners__lead">{t.socialsLead}</p>
 
           <div className="socials__grid">
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+            <a href="https://instagram.com/sapienspay" target="_blank" rel="noopener noreferrer">
               {t.socialInstagram}
             </a>
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+            <a href="https://facebook.com/sapienspay" target="_blank" rel="noopener noreferrer">
               {t.socialFacebook}
             </a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
+            <a href="https://linkedin.com/company/sapiens-pay" target="_blank" rel="noopener noreferrer">
               {t.socialLinkedin}
             </a>
-            <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">
+            <a href="https://tiktok.com/@sapienspay" target="_blank" rel="noopener noreferrer">
               {t.socialTiktok}
             </a>
           </div>

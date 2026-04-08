@@ -692,9 +692,24 @@ ul {
     gap: 1rem;
   }
 
+  &__meta {
+    display: grid;
+    gap: 0.28rem;
+  }
+
   p {
     color: #4a4a4a;
     font-size: 0.92rem;
+  }
+
+  &__credit {
+    color: #4a4a4a;
+    font-size: 0.86rem;
+    text-decoration: none;
+  }
+
+  &__credit:hover {
+    text-decoration: underline;
   }
 
   &__links {
@@ -1263,6 +1278,10 @@ ul {
     &__inner {
       flex-direction: column;
       align-items: flex-start;
+    }
+
+    &__meta {
+      gap: 0.35rem;
     }
   }
 

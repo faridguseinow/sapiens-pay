@@ -56,7 +56,7 @@ export function ServicesShowcase({ t }: ServicesShowcaseProps) {
         </div>
 
         <div className="services-showcase__cta">
-          <a className="btn btn--primary" href="#elaqe">
+          <a className="btn btn--primary" href="#muraciet">
             {t.servicesAction}
           </a>
         </div>
