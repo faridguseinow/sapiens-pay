@@ -13,9 +13,7 @@ type LeadPayload = {
   };
   profile: {
     businessType: string;
-    adPlatforms: string;
     adBudget: string;
-    commissionLevel: string;
     commissionAmount: string;
     growthPlan: string;
   };
@@ -73,7 +71,7 @@ function buildHtml(payload: LeadPayload) {
             <p style="margin:0;font-size:15px;font-weight:700;color:#111827;">${escapeHtml(payload.contact.phone)}</p>
           </div>
           <div style="background:#f8fafb;border:1px solid #e7ecef;border-radius:12px;padding:10px;">
-            <p style="margin:0 0 5px;font-size:12px;color:#6b7280;">Estimated Monthly Loss</p>
+            <p style="margin:0 0 5px;font-size:12px;color:#6b7280;">Estimated Yearly Loss</p>
             <p style="margin:0;font-size:15px;font-weight:700;color:#7a870f;">${escapeHtml(String(payload.estimatedLoss))} AZN</p>
           </div>
         </div>
@@ -84,9 +82,7 @@ function buildHtml(payload: LeadPayload) {
         <table style="width:100%;border-collapse:collapse;border:1px solid #e8ebed;border-radius:12px;overflow:hidden;">
           <tbody>
             ${row("Business Type", payload.profile.businessType)}
-            ${row("Ad Platforms", payload.profile.adPlatforms)}
             ${row("Ad Budget", payload.profile.adBudget)}
-            ${row("Commission Level", payload.profile.commissionLevel)}
             ${row("Monthly Commission", payload.profile.commissionAmount)}
             ${row("Growth Plan", payload.profile.growthPlan)}
             ${row("Preferred Contact", payload.contact.preferredContact)}
@@ -151,7 +147,7 @@ export async function POST(request: Request) {
     });
 
     const toEmail = process.env.LEAD_TO_EMAIL ?? "sapienspay@gmail.com";
-    const subject = `Lead: ${body.contact.name} | ${body.contact.phone} | ~${body.estimatedLoss} AZN`;
+    const subject = `Lead: ${body.contact.name} | ${body.contact.phone} | yearly ~${body.estimatedLoss} AZN`;
 
     await transporter.sendMail({
       from: process.env.LEAD_FROM_EMAIL ?? `Sapiens Pay Leads <${gmailUser}>`,
@@ -163,7 +159,7 @@ export async function POST(request: Request) {
         `Name: ${body.contact.name}`,
         `Phone: ${body.contact.phone}`,
         `Preferred Contact: ${body.contact.preferredContact}`,
-        `Estimated Monthly Loss: ${body.estimatedLoss} AZN`,
+        `Estimated Yearly Loss: ${body.estimatedLoss} AZN`,
         "",
         "Answers:",
         ...body.qa.map((item) => `- ${item.question}: ${item.answer}`),

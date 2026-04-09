@@ -1,9 +1,9 @@
 import type { Dictionary } from "../lib/i18n";
 
 const photos = [
-  "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1559028012-481c04fa702d?auto=format&fit=crop&w=1200&q=80",
+  "https://assets-au-01.kc-usercontent.com/df4a25df-7d25-0294-ad5c-62528c8f82da/8f47f14f-3de2-496f-b992-a79baefb18a7/IMG_Meta%20Ads.jpg?q=75&fm=jpg&w=960",
+  "https://easypayments.online/media/articles/img_1751884024.761801.jpg",
+  "https://www.itsec.ru/hubfs/ISR/Shopify.jpg",
 ];
 
 type ServicesShowcaseProps = {

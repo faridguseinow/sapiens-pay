@@ -25,12 +25,8 @@ type QuizCopy = {
   problemBanner: string;
   q1: string;
   q1Options: Choice[];
-  q2: string;
-  q2Options: Choice[];
   q3: string;
   q3Options: Choice[];
-  q4: string;
-  q4Options: Choice[];
   q5: string;
   q5Options: Choice[];
   q6: string;
@@ -47,7 +43,7 @@ type QuizCopy = {
 const quizCopy: Record<Locale, QuizCopy> = {
   az: {
     step1Title: "Gəlin sizi daha yaxından tanıyaq",
-    step1Subtitle: "Sizə ən uyğun həlli təklif etmək üçün 3 qısa suala cavab verin",
+    step1Subtitle: "Sizə ən uyğun həlli təklif etmək üçün 2 qısa suala cavab verin",
     step2Title: "İndi əsas məsələyə keçək",
     step2Subtitle: "Komissiyalar sizə nə qədər təsir edir?",
     step3Title: "Sizə uyğun həlli hazırlayaq",
@@ -59,43 +55,27 @@ const quizCopy: Record<Locale, QuizCopy> = {
     successTitle: "Müraciətiniz qeydə alındı",
     successText: "Qısa zamanda sizinlə əlaqə saxlayacağıq.",
     submitErrorText: "Göndəriş alınmadı. Zəhmət olmasa bir daha cəhd edin.",
-    problemBanner: "Siz artıq ayda təxminən",
+    problemBanner: "Siz ildə təxminən itirirsiniz",
     q1: "Hansı sahədə fəaliyyət göstərirsiniz?",
     q1Options: [
       { label: "E-commerce (online mağaza)", value: "ecom" },
       { label: "Marketinq / Reklam agentliyi", value: "agency" },
-      { label: "Dropshipping", value: "dropshipping" },
       { label: "Freelancer (SMM, dizayn, proqramlaşdırma və s.)", value: "freelancer" },
       { label: "Şirkət / Biznes sahibi", value: "business" },
       { label: "Digər", value: "other" },
     ],
-    q2: "Reklamları harada yerləşdirirsiniz?",
-    q2Options: [
-      { label: "Meta (Instagram / Facebook)", value: "meta" },
-      { label: "Google Ads", value: "google" },
-      { label: "TikTok Ads", value: "tiktok" },
-      { label: "Hamısı", value: "all" },
-      { label: "Hələ reklam vermirəm", value: "none" },
-    ],
-    q3: "Aylıq reklam büdcəniz nə qədərdir?",
+    q3: "Aylıq reklam büdcəniz nə qədərdir? (USD)",
     q3Options: [
-      { label: "0 – 500 AZN", value: "0-500" },
-      { label: "500 – 2000 AZN", value: "500-2000" },
-      { label: "2000 – 5000 AZN", value: "2000-5000" },
-      { label: "5000+ AZN", value: "5000+" },
+      { label: "0 – 500 USD", value: "0-500" },
+      { label: "500 – 2000 USD", value: "500-2000" },
+      { label: "2000 – 5000 USD", value: "2000-5000" },
+      { label: "5000+ USD", value: "5000+" },
     ],
-    q4: "Reklam ödənişlərində komissiya ödəyirsiniz?",
-    q4Options: [
-      { label: "Bəli, çox yüksəkdir", value: "high" },
-      { label: "Bəli, amma nə qədər olduğunu bilmirəm", value: "unknown" },
-      { label: "Bəzən olur", value: "sometimes" },
-      { label: "Xeyr (əmin deyiləm)", value: "not-sure" },
-    ],
-    q5: "Təxminən aylıq nə qədər komissiya ödəyirsiniz?",
+    q5: "Təxminən aylıq nə qədər komissiya ödəyirsiniz? (USD)",
     q5Options: [
-      { label: "50 – 200 AZN", value: "50-200" },
-      { label: "200 – 500 AZN", value: "200-500" },
-      { label: "500+ AZN", value: "500+" },
+      { label: "50 – 200 USD", value: "50-200" },
+      { label: "200 – 500 USD", value: "200-500" },
+      { label: "500+ USD", value: "500+" },
       { label: "Bilmirəm, amma hiss edirəm ki, çoxdur", value: "dont-know" },
     ],
     q6: "Əgər bu xərcləri azaltsanız, nə edərdiniz?",
@@ -115,11 +95,11 @@ const quizCopy: Record<Locale, QuizCopy> = {
       { label: "WhatsApp", value: "whatsapp" },
       { label: "Telegram", value: "telegram" },
     ],
-    submitLeadText: "Müraciətinizi göndərin və komissiyalara artıq pul ödəməyin",
+    submitLeadText: "Müraciətinizi göndərin və komissiyalara illik itkini azaldın",
   },
   ru: {
     step1Title: "Давайте познакомимся ближе",
-    step1Subtitle: "Ответьте на 3 коротких шага, чтобы мы предложили оптимальное решение",
+    step1Subtitle: "Ответьте на 2 коротких вопроса, чтобы мы предложили оптимальное решение",
     step2Title: "Теперь к основной задаче",
     step2Subtitle: "Насколько комиссии влияют на ваш бизнес?",
     step3Title: "Подготовим решение под вас",
@@ -131,43 +111,27 @@ const quizCopy: Record<Locale, QuizCopy> = {
     successTitle: "Заявка отправлена",
     successText: "Мы свяжемся с вами в ближайшее время.",
     submitErrorText: "Не удалось отправить заявку. Попробуйте ещё раз.",
-    problemBanner: "Вы уже теряете примерно",
+    problemBanner: "Ваши потери в год составляют примерно",
     q1: "В какой сфере вы работаете?",
     q1Options: [
       { label: "E-commerce (онлайн-магазин)", value: "ecom" },
       { label: "Маркетинг / Рекламное агентство", value: "agency" },
-      { label: "Dropshipping", value: "dropshipping" },
       { label: "Фриланс (SMM, дизайн, разработка и т.д.)", value: "freelancer" },
       { label: "Компания / Владелец бизнеса", value: "business" },
       { label: "Другое", value: "other" },
     ],
-    q2: "Где размещаете рекламу?",
-    q2Options: [
-      { label: "Meta (Instagram / Facebook)", value: "meta" },
-      { label: "Google Ads", value: "google" },
-      { label: "TikTok Ads", value: "tiktok" },
-      { label: "Везде", value: "all" },
-      { label: "Пока не запускаю рекламу", value: "none" },
-    ],
-    q3: "Какой у вас месячный рекламный бюджет?",
+    q3: "Какой у вас месячный рекламный бюджет? (USD)",
     q3Options: [
-      { label: "0 – 500 AZN", value: "0-500" },
-      { label: "500 – 2000 AZN", value: "500-2000" },
-      { label: "2000 – 5000 AZN", value: "2000-5000" },
-      { label: "5000+ AZN", value: "5000+" },
+      { label: "0 – 500 USD", value: "0-500" },
+      { label: "500 – 2000 USD", value: "500-2000" },
+      { label: "2000 – 5000 USD", value: "2000-5000" },
+      { label: "5000+ USD", value: "5000+" },
     ],
-    q4: "Платите комиссии при рекламных платежах?",
-    q4Options: [
-      { label: "Да, очень высокие", value: "high" },
-      { label: "Да, но не знаю сколько", value: "unknown" },
-      { label: "Иногда", value: "sometimes" },
-      { label: "Нет (не уверен)", value: "not-sure" },
-    ],
-    q5: "Сколько примерно в месяц уходит на комиссии?",
+    q5: "Сколько примерно в месяц уходит на комиссии? (USD)",
     q5Options: [
-      { label: "50 – 200 AZN", value: "50-200" },
-      { label: "200 – 500 AZN", value: "200-500" },
-      { label: "500+ AZN", value: "500+" },
+      { label: "50 – 200 USD", value: "50-200" },
+      { label: "200 – 500 USD", value: "200-500" },
+      { label: "500+ USD", value: "500+" },
       { label: "Не знаю, но чувствую что много", value: "dont-know" },
     ],
     q6: "Что сделаете, если снизите эти расходы?",
@@ -187,11 +151,11 @@ const quizCopy: Record<Locale, QuizCopy> = {
       { label: "WhatsApp", value: "whatsapp" },
       { label: "Telegram", value: "telegram" },
     ],
-    submitLeadText: "Отправьте заявку и перестаньте переплачивать комиссии",
+    submitLeadText: "Оставьте заявку и сократите годовые потери на комиссиях",
   },
   en: {
     step1Title: "Let us get to know you",
-    step1Subtitle: "Answer 3 short steps so we can suggest the best-fit solution",
+    step1Subtitle: "Answer 2 short questions so we can suggest the best-fit solution",
     step2Title: "Now let us address the core issue",
     step2Subtitle: "How much do commissions affect your business?",
     step3Title: "Let us prepare your best-fit solution",
@@ -203,43 +167,27 @@ const quizCopy: Record<Locale, QuizCopy> = {
     successTitle: "Your request has been sent",
     successText: "Our team will contact you shortly.",
     submitErrorText: "Request was not sent. Please try again.",
-    problemBanner: "You are already losing around",
+    problemBanner: "Your estimated yearly loss is around",
     q1: "What area do you work in?",
     q1Options: [
       { label: "E-commerce (online store)", value: "ecom" },
       { label: "Marketing / Advertising agency", value: "agency" },
-      { label: "Dropshipping", value: "dropshipping" },
       { label: "Freelancer (SMM, design, development, etc.)", value: "freelancer" },
       { label: "Company / Business owner", value: "business" },
       { label: "Other", value: "other" },
     ],
-    q2: "Where do you run ads?",
-    q2Options: [
-      { label: "Meta (Instagram / Facebook)", value: "meta" },
-      { label: "Google Ads", value: "google" },
-      { label: "TikTok Ads", value: "tiktok" },
-      { label: "All of them", value: "all" },
-      { label: "I am not running ads yet", value: "none" },
-    ],
-    q3: "What is your monthly ad budget?",
+    q3: "What is your monthly ad budget? (USD)",
     q3Options: [
-      { label: "0 – 500 AZN", value: "0-500" },
-      { label: "500 – 2000 AZN", value: "500-2000" },
-      { label: "2000 – 5000 AZN", value: "2000-5000" },
-      { label: "5000+ AZN", value: "5000+" },
+      { label: "0 – 500 USD", value: "0-500" },
+      { label: "500 – 2000 USD", value: "500-2000" },
+      { label: "2000 – 5000 USD", value: "2000-5000" },
+      { label: "5000+ USD", value: "5000+" },
     ],
-    q4: "Do you pay commissions on ad payments?",
-    q4Options: [
-      { label: "Yes, very high", value: "high" },
-      { label: "Yes, but I do not know how much", value: "unknown" },
-      { label: "Sometimes", value: "sometimes" },
-      { label: "No (not sure)", value: "not-sure" },
-    ],
-    q5: "How much do you roughly pay in monthly commissions?",
+    q5: "How much do you roughly pay in monthly commissions? (USD)",
     q5Options: [
-      { label: "50 – 200 AZN", value: "50-200" },
-      { label: "200 – 500 AZN", value: "200-500" },
-      { label: "500+ AZN", value: "500+" },
+      { label: "50 – 200 USD", value: "50-200" },
+      { label: "200 – 500 USD", value: "200-500" },
+      { label: "500+ USD", value: "500+" },
       { label: "Not sure, but it feels high", value: "dont-know" },
     ],
     q6: "If you reduced these costs, what would you do?",
@@ -259,15 +207,13 @@ const quizCopy: Record<Locale, QuizCopy> = {
       { label: "WhatsApp", value: "whatsapp" },
       { label: "Telegram", value: "telegram" },
     ],
-    submitLeadText: "Send your request and stop overpaying commissions",
+    submitLeadText: "Send your request and reduce yearly fee losses",
   },
 };
 
 type Answers = {
   q1?: string;
-  q2?: string;
   q3?: string;
-  q4?: string;
   q5?: string;
   q6?: string;
   name: string;
@@ -285,9 +231,7 @@ type LeadPayload = {
   };
   profile: {
     businessType: string;
-    adPlatforms: string;
     adBudget: string;
-    commissionLevel: string;
     commissionAmount: string;
     growthPlan: string;
   };
@@ -302,35 +246,21 @@ const initialAnswers: Answers = {
   phone: PHONE_PREFIX,
 };
 
-const budgetEstimate: Record<string, number> = {
+const USD_TO_AZN = 1.7;
+const COMMISSION_RATE = 0.18;
+
+const budgetEstimateUsd: Record<string, number> = {
   "0-500": 350,
   "500-2000": 1250,
   "2000-5000": 3500,
   "5000+": 6000,
 };
 
-const commissionRate: Record<string, number> = {
-  high: 0.18,
-  unknown: 0.12,
-  sometimes: 0.08,
-  "not-sure": 0.06,
-};
-
-const fixedLoss: Record<string, number> = {
-  "50-200": 125,
-  "200-500": 350,
-  "500+": 650,
-};
-
 function calculateLoss(answers: Answers) {
-  if (answers.q5 && answers.q5 in fixedLoss) {
-    return fixedLoss[answers.q5];
-  }
-
-  const budget = answers.q3 ? budgetEstimate[answers.q3] ?? 700 : 700;
-  const rate = answers.q4 ? commissionRate[answers.q4] ?? 0.1 : 0.1;
-  const value = Math.round((budget * rate) / 10) * 10;
-  return Math.max(value, 60);
+  const monthlyBudgetUsd = answers.q3 ? budgetEstimateUsd[answers.q3] ?? 350 : 350;
+  const monthlyLossUsd = monthlyBudgetUsd * COMMISSION_RATE;
+  const yearlyLossAzn = monthlyLossUsd * 12 * USD_TO_AZN;
+  return Math.round(yearlyLossAzn);
 }
 
 function findLabel(options: Choice[], value?: string) {
@@ -340,9 +270,7 @@ function findLabel(options: Choice[], value?: string) {
 
 function buildPayload(locale: Locale, c: QuizCopy, answers: Answers, estimatedLoss: number): LeadPayload {
   const q1 = findLabel(c.q1Options, answers.q1);
-  const q2 = findLabel(c.q2Options, answers.q2);
   const q3 = findLabel(c.q3Options, answers.q3);
-  const q4 = findLabel(c.q4Options, answers.q4);
   const q5 = findLabel(c.q5Options, answers.q5);
   const q6 = findLabel(c.q6Options, answers.q6);
   const q9 = findLabel(c.q9Options, answers.contact);
@@ -357,17 +285,13 @@ function buildPayload(locale: Locale, c: QuizCopy, answers: Answers, estimatedLo
     },
     profile: {
       businessType: q1,
-      adPlatforms: q2,
       adBudget: q3,
-      commissionLevel: q4,
       commissionAmount: q5,
       growthPlan: q6,
     },
     qa: [
       { question: c.q1, answer: q1 },
-      { question: c.q2, answer: q2 },
       { question: c.q3, answer: q3 },
-      { question: c.q4, answer: q4 },
       { question: c.q5, answer: q5 },
       { question: c.q6, answer: q6 },
       { question: c.q7, answer: answers.name.trim() },
@@ -390,8 +314,8 @@ export function LeadQuiz({ locale }: { locale: Locale }) {
   const phoneDigits = answers.phone.replace(/\D/g, "");
   const hasPhoneNumber = phoneDigits.length > 3;
 
-  const canNextFromStep1 = Boolean(answers.q1 && answers.q2 && answers.q3);
-  const canNextFromStep2 = Boolean(answers.q4 && answers.q5 && answers.q6);
+  const canNextFromStep1 = Boolean(answers.q1 && answers.q3);
+  const canNextFromStep2 = Boolean(answers.q5 && answers.q6);
   const canSubmit = Boolean(answers.name.trim() && hasPhoneNumber && answers.contact);
 
   const handlePhoneChange = (rawValue: string) => {
@@ -489,22 +413,6 @@ export function LeadQuiz({ locale }: { locale: Locale }) {
               </fieldset>
 
               <fieldset>
-                <legend>{c.q2}</legend>
-                {c.q2Options.map((option) => (
-                  <label key={option.value} className="lead-quiz__option">
-                    <input
-                      type="radio"
-                      name="q2"
-                      value={option.value}
-                      checked={answers.q2 === option.value}
-                      onChange={() => setAnswers((prev) => ({ ...prev, q2: option.value }))}
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </fieldset>
-
-              <fieldset>
                 <legend>{c.q3}</legend>
                 {c.q3Options.map((option) => (
                   <label key={option.value} className="lead-quiz__option">
@@ -524,22 +432,6 @@ export function LeadQuiz({ locale }: { locale: Locale }) {
 
           {!submitted && step === 1 ? (
             <div className="lead-quiz__step">
-              <fieldset>
-                <legend>{c.q4}</legend>
-                {c.q4Options.map((option) => (
-                  <label key={option.value} className="lead-quiz__option">
-                    <input
-                      type="radio"
-                      name="q4"
-                      value={option.value}
-                      checked={answers.q4 === option.value}
-                      onChange={() => setAnswers((prev) => ({ ...prev, q4: option.value }))}
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </fieldset>
-
               <fieldset>
                 <legend>{c.q5}</legend>
                 {c.q5Options.map((option) => (

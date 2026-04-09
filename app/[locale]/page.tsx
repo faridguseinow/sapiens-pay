@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { MobileFooterNav, SiteFooter, SiteHeader } from "../_components/site-chrome";
 import { Parallax } from "../_components/parallax";
 import { MoneyRain } from "../_components/money-rain";
@@ -8,10 +9,10 @@ import { LeadQuiz } from "../_components/lead-quiz";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
 
 const partners = [
-  "Duomo Records",
-  "Fly Friendly",
-  "Nurs Boymax",
-  "Hurucco"
+  { name: "Partner 1", src: "/partners/partner-1.png" },
+  { name: "Partner 2", src: "/partners/partner-2.png" },
+  { name: "Partner 3", src: "/partners/partner-3.png" },
+  { name: "Partner 4", src: "/partners/partner-4.png" },
 ];
 
 export function generateStaticParams() {
@@ -49,7 +50,7 @@ export default async function LocalizedPage({
             <a className="btn btn--primary" href="#muraciet">
               {t.heroPrimary}
             </a>
-            <a className="btn btn--ghost link-draw" href="#about">
+            <a className="btn btn--ghost" href="#about">
               {t.heroSecondary}
             </a>
           </div>
@@ -78,14 +79,12 @@ export default async function LocalizedPage({
           <p className="partners__lead">{t.partnersLead}</p>
         </div>
 
-        <div className="marquee marquee--left">
-          <div className="marquee__track">
-            {[...partners, ...partners].map((name, index) => (
-              <div className="partner-chip" key={`left-${name}-${index}`}>
-                {name}
-              </div>
-            ))}
-          </div>
+        <div className="partners__grid">
+          {partners.map((partner) => (
+            <article className="partner-card" key={partner.name}>
+              <Image src={partner.src} alt={partner.name} width={260} height={96} />
+            </article>
+          ))}
         </div>
       </section>
 
@@ -120,7 +119,7 @@ export default async function LocalizedPage({
             <a href="https://instagram.com/sapienspay" target="_blank" rel="noopener noreferrer">
               {t.socialInstagram}
             </a>
-            <a href="https://facebook.com/sapienspay" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.facebook.com/profile.php?id=61586634017012&mibextid=LQQJ4d" target="_blank" rel="noopener noreferrer">
               {t.socialFacebook}
             </a>
             <a href="https://linkedin.com/company/sapiens-pay" target="_blank" rel="noopener noreferrer">
