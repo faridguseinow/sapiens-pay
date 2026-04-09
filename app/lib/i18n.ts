@@ -55,7 +55,7 @@ export type Dictionary = {
   ctaButton: string;
   mobileHome: string;
   mobileCall: string;
-  mobileAbout: string;
+  mobileLead: string;
   socialsTitle: string;
   socialsLead: string;
   socialInstagram: string;
@@ -136,7 +136,7 @@ export const dict: Record<Locale, Dictionary> = {
     ctaButton: "Bizimlə əlaqə",
     mobileHome: "Ana səhifə",
     mobileCall: "Zəng et",
-    mobileAbout: "Haqqımızda",
+    mobileLead: "Müraciət et",
     socialsTitle: "Sosial şəbəkələrdə bizi izləyin",
     socialsLead:
       "Daha çox məlumat və yeniliklər üçün platformalarımıza keçid edin.",
@@ -219,7 +219,7 @@ export const dict: Record<Locale, Dictionary> = {
     ctaButton: "Связаться с нами",
     mobileHome: "Главная",
     mobileCall: "Позвонить",
-    mobileAbout: "О нас",
+    mobileLead: "Оставить заявку",
     socialsTitle: "Следите за нами в социальных сетях",
     socialsLead: "Переходите на наши площадки, чтобы узнать о нас больше.",
     socialInstagram: "Instagram",
@@ -300,7 +300,7 @@ export const dict: Record<Locale, Dictionary> = {
     ctaButton: "Contact us",
     mobileHome: "Home",
     mobileCall: "Call",
-    mobileAbout: "About",
+    mobileLead: "Apply now",
     socialsTitle: "Follow us on social media",
     socialsLead: "Visit our platforms to learn more about Sapiens Pay.",
     socialInstagram: "Instagram",

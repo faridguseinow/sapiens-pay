@@ -295,9 +295,11 @@ type LeadPayload = {
   submittedAt: string;
 };
 
+const PHONE_PREFIX = "+994";
+
 const initialAnswers: Answers = {
   name: "",
-  phone: "",
+  phone: PHONE_PREFIX,
 };
 
 const budgetEstimate: Record<string, number> = {
@@ -385,10 +387,18 @@ export function LeadQuiz({ locale }: { locale: Locale }) {
   const [answers, setAnswers] = useState<Answers>(initialAnswers);
 
   const estimatedLoss = calculateLoss(answers);
+  const phoneDigits = answers.phone.replace(/\D/g, "");
+  const hasPhoneNumber = phoneDigits.length > 3;
 
   const canNextFromStep1 = Boolean(answers.q1 && answers.q2 && answers.q3);
   const canNextFromStep2 = Boolean(answers.q4 && answers.q5 && answers.q6);
-  const canSubmit = Boolean(answers.name.trim() && answers.phone.trim() && answers.contact);
+  const canSubmit = Boolean(answers.name.trim() && hasPhoneNumber && answers.contact);
+
+  const handlePhoneChange = (rawValue: string) => {
+    const digits = rawValue.replace(/\D/g, "");
+    const localDigits = digits.startsWith("994") ? digits.slice(3) : digits;
+    setAnswers((prev) => ({ ...prev, phone: `${PHONE_PREFIX}${localDigits}` }));
+  };
 
   const goNext = () => {
     if (step === 0 && !canNextFromStep1) return;
@@ -583,11 +593,11 @@ export function LeadQuiz({ locale }: { locale: Locale }) {
                 <span>{c.q8}</span>
                 <input
                   type="tel"
-                  placeholder={c.q8Placeholder}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder={c.q8Placeholder.replace("+994 ", "")}
                   value={answers.phone}
-                  onChange={(event) =>
-                    setAnswers((prev) => ({ ...prev, phone: event.target.value }))
-                  }
+                  onChange={(event) => handlePhoneChange(event.target.value)}
                   required
                 />
               </label>
