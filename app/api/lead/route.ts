@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 type LeadPayload = {
   locale: string;
   estimatedLoss: number;
@@ -158,7 +160,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error while sending lead email";
+    console.error("[api/lead] Failed to send lead email:", error);
+    return NextResponse.json({ error: "Unexpected error", detail: message }, { status: 500 });
   }
 }

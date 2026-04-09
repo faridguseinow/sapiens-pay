@@ -417,12 +417,17 @@ export function LeadQuiz({ locale }: { locale: Locale }) {
       });
 
       if (!response.ok) {
-        throw new Error("failed_to_send");
+        const errorData = (await response.json().catch(() => null)) as
+          | { error?: string; detail?: string }
+          | null;
+        const backendMessage = errorData?.detail ?? errorData?.error ?? "failed_to_send";
+        throw new Error(backendMessage);
       }
 
       setSubmitted(true);
-    } catch {
-      setSubmitError(c.submitErrorText);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      setSubmitError(message ? `${c.submitErrorText} (${message})` : c.submitErrorText);
     } finally {
       setIsSubmitting(false);
     }
