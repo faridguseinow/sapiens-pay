@@ -123,9 +123,21 @@ export async function POST(request: Request) {
 
     const gmailUser = process.env.GMAIL_USER;
     const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+    const host = request.headers.get("host") ?? "unknown-host";
 
     if (!gmailUser || !gmailAppPassword) {
-      return NextResponse.json({ error: "Mail credentials are not configured" }, { status: 500 });
+      const missing = [
+        !gmailUser ? "GMAIL_USER" : null,
+        !gmailAppPassword ? "GMAIL_APP_PASSWORD" : null,
+      ].filter(Boolean);
+
+      return NextResponse.json(
+        {
+          error: "Mail credentials are not configured",
+          detail: `Missing env: ${missing.join(", ")} | host: ${host}`,
+        },
+        { status: 500 },
+      );
     }
 
     const transporter = nodemailer.createTransport({
