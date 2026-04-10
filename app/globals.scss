@@ -359,27 +359,36 @@ ul {
     &__grid {
       margin-top: 1.35rem;
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1.4rem;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      gap: 0.65rem;
+      max-width: 860px;
     }
 
     .partner-card {
-      width: 100%;
-      min-height: 2.4rem;
+      min-height: 4.2rem;
       border: 1px solid var(--line);
-      border-radius: 0.8rem;
-      background: #fff;
+      border-radius: 0.7rem;
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      text-decoration: none;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        border-color: color-mix(in srgb, var(--accent) 65%, #ffffff);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      }
 
       img {
-        width: 100%;
-        border-radius: 0.5rem;
-        height: rem;
-        width: 100%;
-        object-fit: cover;
+        max-width: 88%;
+        max-height: 2.35rem;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        opacity: 1;
       }
     }
   }
@@ -614,10 +623,15 @@ ul {
     .partners {
       &__grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: 100%;
       }
 
       .partner-card {
-        min-height: 5.2rem;
+        min-height: 3.8rem;
+      }
+
+      .partner-card img {
+        max-height: 1.7rem;
       }
     }
   }

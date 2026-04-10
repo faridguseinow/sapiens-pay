@@ -1,3 +1,4 @@
+import { google } from "googleapis";
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
 
@@ -110,6 +111,49 @@ function validatePayload(data: unknown): data is LeadPayload {
   return true;
 }
 
+async function appendLeadToSheet(payload: LeadPayload) {
+  const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const sheetName = process.env.GOOGLE_SHEETS_SHEET_NAME ?? "Leads";
+
+  // If Google Sheets is not configured yet, skip without failing lead submit.
+  if (!clientEmail || !privateKeyRaw || !spreadsheetId) {
+    return;
+  }
+
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+  const auth = new google.auth.JWT({
+    email: clientEmail,
+    key: privateKey,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+  const sheets = google.sheets({ version: "v4", auth });
+
+  const row = [
+    new Date(payload.submittedAt).toISOString(),
+    payload.locale,
+    payload.contact.name,
+    payload.contact.phone,
+    payload.contact.preferredContact,
+    payload.estimatedLoss,
+    payload.profile.businessType,
+    payload.profile.adBudget,
+    payload.profile.commissionAmount,
+    payload.profile.growthPlan,
+    payload.qa.map((item) => `${item.question}: ${item.answer}`).join(" | "),
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${sheetName}!A:K`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [row],
+    },
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -149,7 +193,7 @@ export async function POST(request: Request) {
     const toEmail = process.env.LEAD_TO_EMAIL ?? "sapienspay@gmail.com";
     const subject = `Lead: ${body.contact.name} | ${body.contact.phone} | yearly ~${body.estimatedLoss} AZN`;
 
-    await transporter.sendMail({
+    const mailPromise = transporter.sendMail({
       from: process.env.LEAD_FROM_EMAIL ?? `Sapiens Pay Leads <${gmailUser}>`,
       to: toEmail,
       replyTo: process.env.LEAD_REPLY_TO ?? gmailUser,
@@ -166,6 +210,9 @@ export async function POST(request: Request) {
       ].join("\n"),
       html: buildHtml(body),
     });
+
+    const sheetPromise = appendLeadToSheet(body);
+    await Promise.all([mailPromise, sheetPromise]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

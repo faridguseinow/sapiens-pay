@@ -41,3 +41,24 @@ Notes:
 - Enable 2FA on your Google account.
 - Generate an App Password in Google Account security settings.
 - Use that App Password as `GMAIL_APP_PASSWORD` (not your main account password).
+
+## Lead form Google Sheets setup (optional)
+
+Leads can also be appended to Google Sheets in parallel with email.
+
+Add to `.env.local`:
+
+```bash
+GOOGLE_SHEETS_CLIENT_EMAIL=service-account-name@project-id.iam.gserviceaccount.com
+GOOGLE_SHEETS_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
+GOOGLE_SHEETS_SHEET_NAME=Leads
+```
+
+Google setup:
+- Create a Google Cloud service account and enable **Google Sheets API**.
+- Share your Google Sheet with the service account email (`Editor` access).
+- Put the sheet ID from the URL into `GOOGLE_SHEETS_SPREADSHEET_ID`.
+
+The API appends columns in this order:
+`submitted_at_iso`, `locale`, `name`, `phone`, `preferred_contact`, `estimated_yearly_loss_azn`, `business_type`, `ad_budget_usd`, `monthly_commission_usd`, `growth_plan`, `answers`.

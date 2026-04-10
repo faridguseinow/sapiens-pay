@@ -9,10 +9,10 @@ import { LeadQuiz } from "../_components/lead-quiz";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
 
 const partners = [
-  { name: "Partner 1", src: "/partners/partner-1.png" },
-  { name: "Partner 2", src: "/partners/partner-2.png" },
-  { name: "Partner 3", src: "/partners/partner-3.png" },
-  { name: "Partner 4", src: "/partners/partner-4.png" },
+  { name: "Partner 1", src: "/partners/partner-1.png", href: "https://www.instagram.com/nurs_boymax/" },
+  { name: "Partner 2", src: "/partners/partner-2.png", href: "https://www.instagram.com/hurucco/" },
+  { name: "Partner 3", src: "/partners/partner-3.png", href: "https://www.instagram.com/flyfriendlyaz/" },
+  { name: "Partner 4", src: "/partners/partner-4.png", href: "https://www.instagram.com/duomorecords/" },
 ];
 
 export function generateStaticParams() {
@@ -77,14 +77,20 @@ export default async function LocalizedPage({
         <div className="container">
           <h2>{t.partnersTitle}</h2>
           <p className="partners__lead">{t.partnersLead}</p>
-        </div>
-
-        <div className="partners__grid">
-          {partners.map((partner) => (
-            <article className="partner-card" key={partner.name}>
-              <Image src={partner.src} alt={partner.name} width={260} height={96} />
-            </article>
-          ))}
+          <div className="partners__grid">
+            {partners.map((partner) => (
+              <a
+                className="partner-card"
+                key={partner.name}
+                href={partner.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={partner.name}
+              >
+                <Image src={partner.src} alt={partner.name} width={180} height={56} />
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 
