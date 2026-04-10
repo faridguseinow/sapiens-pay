@@ -55,6 +55,14 @@ GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
 GOOGLE_SHEETS_SHEET_NAME=Leads
 ```
 
+Alternative (single JSON secret):
+
+```bash
+GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...@....iam.gserviceaccount.com"}'
+GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
+GOOGLE_SHEETS_SHEET_NAME=Leads
+```
+
 Google setup:
 - Create a Google Cloud service account and enable **Google Sheets API**.
 - Share your Google Sheet with the service account email (`Editor` access).

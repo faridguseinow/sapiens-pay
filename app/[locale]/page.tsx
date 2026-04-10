@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import partner1 from "../media/partners/partner-1.png";
+import partner2 from "../media/partners/partner-2.png";
+import partner3 from "../media/partners/partner-3.png";
+import partner4 from "../media/partners/partner-4.png";
 import { MobileFooterNav, SiteFooter, SiteHeader } from "../_components/site-chrome";
 import { Parallax } from "../_components/parallax";
 import { MoneyRain } from "../_components/money-rain";
@@ -9,10 +13,10 @@ import { LeadQuiz } from "../_components/lead-quiz";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
 
 const partners = [
-  { name: "Partner 1", src: "/partners/partner-1.png", href: "https://www.instagram.com/nurs_boymax/" },
-  { name: "Partner 2", src: "/partners/partner-2.png", href: "https://www.instagram.com/hurucco/" },
-  { name: "Partner 3", src: "/partners/partner-3.png", href: "https://www.instagram.com/flyfriendlyaz/" },
-  { name: "Partner 4", src: "/partners/partner-4.png", href: "https://www.instagram.com/duomorecords/" },
+  { name: "Partner 1", src: partner1, href: "https://www.instagram.com/nurs_boymax/" },
+  { name: "Partner 2", src: partner2, href: "https://www.instagram.com/hurucco/" },
+  { name: "Partner 3", src: partner3, href: "https://www.instagram.com/flyfriendlyaz/" },
+  { name: "Partner 4", src: partner4, href: "https://www.instagram.com/duomorecords/" },
 ];
 
 export function generateStaticParams() {

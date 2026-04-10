@@ -22,6 +22,11 @@ type LeadPayload = {
   submittedAt: string;
 };
 
+type GoogleServiceAccount = {
+  client_email?: string;
+  private_key?: string;
+};
+
 const escapeHtml = (value: string) =>
   value
     .replaceAll("&", "&amp;")
@@ -112,10 +117,21 @@ function validatePayload(data: unknown): data is LeadPayload {
 }
 
 async function appendLeadToSheet(payload: LeadPayload) {
-  const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
+  let clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
+  let privateKeyRaw = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
   const sheetName = process.env.GOOGLE_SHEETS_SHEET_NAME ?? "Leads";
+  const serviceAccountJson = process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON;
+
+  if (serviceAccountJson && (!clientEmail || !privateKeyRaw)) {
+    try {
+      const parsed = JSON.parse(serviceAccountJson) as GoogleServiceAccount;
+      clientEmail = parsed.client_email;
+      privateKeyRaw = parsed.private_key;
+    } catch {
+      throw new Error("Invalid GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON");
+    }
+  }
 
   // If Google Sheets is not configured yet, skip without failing lead submit.
   if (!clientEmail || !privateKeyRaw || !spreadsheetId) {
@@ -211,8 +227,15 @@ export async function POST(request: Request) {
       html: buildHtml(body),
     });
 
-    const sheetPromise = appendLeadToSheet(body);
-    await Promise.all([mailPromise, sheetPromise]);
+    const [mailResult, sheetResult] = await Promise.allSettled([mailPromise, appendLeadToSheet(body)]);
+
+    if (mailResult.status === "rejected") {
+      throw mailResult.reason;
+    }
+
+    if (sheetResult.status === "rejected") {
+      console.error("[api/lead] Failed to append lead to Google Sheets:", sheetResult.reason);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
