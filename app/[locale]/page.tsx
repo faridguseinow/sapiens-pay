@@ -80,7 +80,6 @@ export default async function LocalizedPage({
       <section className="section partners" id="emekdasliq">
         <div className="container">
           <h2>{t.partnersTitle}</h2>
-          <p className="partners__lead">{t.partnersLead}</p>
           <div className="partners__grid">
             {partners.map((partner) => (
               <a
