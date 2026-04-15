@@ -1,12 +1,13 @@
 import { groq } from "next-sanity";
 
 export const postsQuery = groq`
-  *[_type == "post"] | order(publishedAt desc){
+  *[_type == "post"] | order(coalesce(publishedAt, _createdAt) desc){
     _id,
     title,
     "slug": slug.current,
     excerpt,
     publishedAt,
+    _createdAt,
     coverImage
   }
 `;

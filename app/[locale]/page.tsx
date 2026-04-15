@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import partner1 from "../media/partners/partner-1.png";
 import partner2 from "../media/partners/partner-2.png";
 import partner3 from "../media/partners/partner-3.png";
@@ -10,6 +11,9 @@ import { MoneyRain } from "../_components/money-rain";
 import { AboutStory } from "../_components/about-story";
 import { ServicesShowcase } from "../_components/services-showcase";
 import { LeadQuiz } from "../_components/lead-quiz";
+import { isSanityConfigured, sanityClient } from "@/lib/sanity.client";
+import { postsQuery } from "@/lib/sanity.queries";
+import { urlForImage } from "@/lib/sanity.image";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
 
 const partners = [
@@ -22,6 +26,15 @@ const partners = [
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
+
+type BlogPostPreview = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  publishedAt?: string;
+  coverImage?: unknown;
+};
 
 export default async function LocalizedPage({
   params,
@@ -36,6 +49,33 @@ export default async function LocalizedPage({
 
   const locale: Locale = localeParam;
   const t = dict[locale];
+  const blogCopy = {
+    az: {
+      title: "Bloqdan son yazılar",
+      lead: "Ödəniş sistemləri, reklam xərcləri və beynəlxalq satışlarla bağlı praktik materiallar.",
+      cta: "Bütün yazılara bax",
+    },
+    ru: {
+      title: "Последние статьи блога",
+      lead: "Практические материалы про платежи, комиссии и международные продажи.",
+      cta: "Смотреть все статьи",
+    },
+    en: {
+      title: "Latest Blog Articles",
+      lead: "Practical guides on payments, fees, and scaling online sales internationally.",
+      cta: "View all posts",
+    },
+  }[locale];
+
+  const latestPosts: BlogPostPreview[] = isSanityConfigured
+    ? await sanityClient.fetch<BlogPostPreview[]>(postsQuery).then((items) => items.slice(0, 3))
+    : [];
+
+  const dateLocaleMap: Record<Locale, string> = {
+    az: "az-AZ",
+    ru: "ru-RU",
+    en: "en-US",
+  };
 
   return (
     <main className="landing" lang={locale}>
@@ -118,6 +158,53 @@ export default async function LocalizedPage({
       </section>
 
       <LeadQuiz locale={locale} />
+
+      {latestPosts.length > 0 ? (
+        <section className="section blog-preview" id="blog-preview">
+          <div className="container">
+            <div className="blog-preview__head">
+              <div>
+                <h2>{blogCopy.title}</h2>
+                <p className="partners__lead">{blogCopy.lead}</p>
+              </div>
+              <Link className="btn btn--ghost" href="/blog">
+                {blogCopy.cta}
+              </Link>
+            </div>
+
+            <div className="blog-preview__grid">
+              {latestPosts.map((post) => {
+                const imageUrl = post.coverImage ? urlForImage(post.coverImage).width(1200).height(680).url() : null;
+                const publishedDate = post.publishedAt
+                  ? new Date(post.publishedAt).toLocaleDateString(dateLocaleMap[locale], {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })
+                  : null;
+
+                return (
+                  <Link key={post._id} className="blog-preview__card" href={`/blog/${post.slug}`}>
+                    <div className="blog-preview__media">
+                      {imageUrl ? (
+                        <Image src={imageUrl} alt={post.title} width={640} height={360} />
+                      ) : (
+                        <div className="blog-preview__placeholder" />
+                      )}
+                    </div>
+
+                    <div className="blog-preview__body">
+                      <h3>{post.title}</h3>
+                      {post.excerpt ? <p>{post.excerpt}</p> : null}
+                      {publishedDate ? <span>{publishedDate}</span> : null}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="section socials" id="socials">
         <div className="container">
