@@ -43,7 +43,7 @@ type QuizCopy = {
 const quizCopy: Record<Locale, QuizCopy> = {
   az: {
     step1Title: "Gəlin sizi daha yaxından tanıyaq",
-    step1Subtitle: "Sizə ən uyğun həlli təklif etmək üçün 2 qısa suala cavab verin",
+    step1Subtitle: "Sizə ən uyğun həlli təklif etmək üçün 4 qısa suala cavab verin",
     step2Title: "İndi əsas məsələyə keçək",
     step2Subtitle: "Komissiyalar sizə nə qədər təsir edir?",
     step3Title: "Sizə uyğun həlli hazırlayaq",
@@ -55,7 +55,7 @@ const quizCopy: Record<Locale, QuizCopy> = {
     successTitle: "Müraciətiniz qeydə alındı",
     successText: "Qısa zamanda sizinlə əlaqə saxlayacağıq.",
     submitErrorText: "Göndəriş alınmadı. Zəhmət olmasa bir daha cəhd edin.",
-    problemBanner: "Siz ildə təxminən itirirsiniz",
+    problemBanner: "Siz ildə təxminən itirirsiniz:",
     q1: "Hansı sahədə fəaliyyət göstərirsiniz?",
     q1Options: [
       { label: "E-commerce (online mağaza)", value: "ecom" },
@@ -99,7 +99,7 @@ const quizCopy: Record<Locale, QuizCopy> = {
   },
   ru: {
     step1Title: "Давайте познакомимся ближе",
-    step1Subtitle: "Ответьте на 2 коротких вопроса, чтобы мы предложили оптимальное решение",
+    step1Subtitle: "Ответьте на 4 коротких вопроса, чтобы мы предложили оптимальное решение",
     step2Title: "Теперь к основной задаче",
     step2Subtitle: "Насколько комиссии влияют на ваш бизнес?",
     step3Title: "Подготовим решение под вас",
@@ -111,7 +111,7 @@ const quizCopy: Record<Locale, QuizCopy> = {
     successTitle: "Заявка отправлена",
     successText: "Мы свяжемся с вами в ближайшее время.",
     submitErrorText: "Не удалось отправить заявку. Попробуйте ещё раз.",
-    problemBanner: "Ваши потери в год составляют примерно",
+    problemBanner: "Ваши потери в год составляют примерно:",
     q1: "В какой сфере вы работаете?",
     q1Options: [
       { label: "E-commerce (онлайн-магазин)", value: "ecom" },
@@ -149,13 +149,13 @@ const quizCopy: Record<Locale, QuizCopy> = {
     q9Options: [
       { label: "Звонок", value: "call" },
       { label: "WhatsApp", value: "whatsapp" },
-      { label: "Telegram", value: "telegram" },
+      { label: "Телеграм", value: "telegram" },
     ],
     submitLeadText: "Оставьте заявку и сократите годовые потери на комиссиях",
   },
   en: {
     step1Title: "Let us get to know you",
-    step1Subtitle: "Answer 2 short questions so we can suggest the best-fit solution",
+    step1Subtitle: "Answer 4 short questions so we can suggest the best-fit solution",
     step2Title: "Now let us address the core issue",
     step2Subtitle: "How much do commissions affect your business?",
     step3Title: "Let us prepare your best-fit solution",
@@ -167,7 +167,7 @@ const quizCopy: Record<Locale, QuizCopy> = {
     successTitle: "Your request has been sent",
     successText: "Our team will contact you shortly.",
     submitErrorText: "Request was not sent. Please try again.",
-    problemBanner: "Your estimated yearly loss is around",
+    problemBanner: "Your estimated yearly loss is around:",
     q1: "What area do you work in?",
     q1Options: [
       { label: "E-commerce (online store)", value: "ecom" },
