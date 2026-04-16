@@ -34,6 +34,7 @@ type BlogPostPreview = {
   excerpt?: string;
   publishedAt?: string;
   coverImage?: unknown;
+  coverImageUrl?: string;
 };
 
 export default async function LocalizedPage({
@@ -68,7 +69,14 @@ export default async function LocalizedPage({
   }[locale];
 
   const latestPosts: BlogPostPreview[] = isSanityConfigured
-    ? await sanityClient.fetch<BlogPostPreview[]>(postsQuery).then((items) => items.slice(0, 3))
+    ? await (async () => {
+        const localized = await sanityClient.fetch<BlogPostPreview[]>(postsQuery, { locale });
+        if (localized.length > 0 || locale === "az") {
+          return localized.slice(0, 3);
+        }
+
+        return sanityClient.fetch<BlogPostPreview[]>(postsQuery, { locale: "az" }).then((items) => items.slice(0, 3));
+      })()
     : [];
 
   const dateLocaleMap: Record<Locale, string> = {
@@ -167,14 +175,16 @@ export default async function LocalizedPage({
                 <h2>{blogCopy.title}</h2>
                 <p className="partners__lead">{blogCopy.lead}</p>
               </div>
-              <Link className="btn btn--ghost" href="/blog">
+              <Link className="btn btn--ghost" href={`/${locale}/blog`}>
                 {blogCopy.cta}
               </Link>
             </div>
 
             <div className="blog-preview__grid">
               {latestPosts.map((post) => {
-                const imageUrl = post.coverImage ? urlForImage(post.coverImage).width(1200).height(680).url() : null;
+                const imageUrl = post.coverImage
+                  ? urlForImage(post.coverImage).width(1200).height(680).url()
+                  : post.coverImageUrl ?? null;
                 const publishedDate = post.publishedAt
                   ? new Date(post.publishedAt).toLocaleDateString(dateLocaleMap[locale], {
                       day: "2-digit",
@@ -184,7 +194,7 @@ export default async function LocalizedPage({
                   : null;
 
                 return (
-                  <Link key={post._id} className="blog-preview__card" href={`/blog/${post.slug}`}>
+                  <Link key={post._id} className="blog-preview__card" href={`/${locale}/blog/${post.slug}`}>
                     <div className="blog-preview__media">
                       {imageUrl ? (
                         <Image src={imageUrl} alt={post.title} width={640} height={360} />

@@ -6,6 +6,21 @@ export const postType = defineType({
   type: "document",
   fields: [
     defineField({
+      name: "language",
+      title: "Language",
+      type: "string",
+      initialValue: "az",
+      options: {
+        list: [
+          { title: "Azerbaijani", value: "az" },
+          { title: "Russian", value: "ru" },
+          { title: "English", value: "en" },
+        ],
+        layout: "radio",
+      },
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
       name: "title",
       title: "Title",
       type: "string",
@@ -29,6 +44,12 @@ export const postType = defineType({
       title: "Cover image",
       type: "image",
       options: { hotspot: true },
+    }),
+    defineField({
+      name: "coverImageUrl",
+      title: "Cover image URL (fallback)",
+      description: "Paste an external image URL if upload is unavailable.",
+      type: "url",
     }),
     defineField({
       name: "publishedAt",
