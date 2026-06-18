@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sanity:posts:audit": "node scripts/fix-sanity-posts.mjs"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.2.7",
     "@portabletext/react": "^6.0.3",
     "@sanity/client": "^7.21.0",
+    "@sanity/document-internationalization": "^6.2.8",
     "@sanity/image-url": "^2.1.1",
     "@types/nodemailer": "^8.0.0",
     "googleapis": "^144.0.0",

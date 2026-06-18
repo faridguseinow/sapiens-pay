@@ -4,7 +4,7 @@ export const postsQuery = groq`
   *[
     _type == "post" &&
     defined(slug.current) &&
-    (language == $locale || !defined(language))
+    language == $locale
   ] | order(coalesce(publishedAt, _createdAt) desc){
     _id,
     language,
@@ -22,7 +22,7 @@ export const postBySlugQuery = groq`
   *[
     _type == "post" &&
     slug.current == $slug &&
-    (language == $locale || !defined(language))
+    language == $locale
   ][0]{
     _id,
     language,
@@ -32,16 +32,25 @@ export const postBySlugQuery = groq`
     publishedAt,
     coverImage,
     coverImageUrl,
-    content
+    content,
+    "_translations": coalesce(
+      *[_type == "translation.metadata" && references(^._id)][0].translations[]{
+        "language": coalesce(value->language, language),
+        "slug": value->slug.current,
+        "title": value->title
+      }[defined(language) && defined(slug)],
+      []
+    )
   }
 `;
 
-export const postSlugsQuery = groq`
+export const postRoutesQuery = groq`
   *[
     _type == "post" &&
     defined(slug.current) &&
-    (language == $locale || !defined(language))
+    language in $locales
   ][]{
+    "locale": language,
     "slug": slug.current
   }
 `;

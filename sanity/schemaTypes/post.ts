@@ -9,15 +9,8 @@ export const postType = defineType({
       name: "language",
       title: "Language",
       type: "string",
-      initialValue: "az",
-      options: {
-        list: [
-          { title: "Azerbaijani", value: "az" },
-          { title: "Russian", value: "ru" },
-          { title: "English", value: "en" },
-        ],
-        layout: "radio",
-      },
+      readOnly: true,
+      hidden: true,
       validation: (rule) => rule.required(),
     }),
     defineField({
@@ -66,7 +59,7 @@ export const postType = defineType({
   preview: {
     select: {
       title: "title",
-      subtitle: "publishedAt",
+      subtitle: "language",
       media: "coverImage",
     },
   },

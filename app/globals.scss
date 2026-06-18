@@ -133,7 +133,8 @@ ul {
   background: #fff;
 
   a,
-  button {
+  button,
+  span {
     border: 0;
     background: transparent;
     color: #111;
@@ -155,6 +156,11 @@ ul {
   a.active,
   button.active {
     background: var(--accent);
+  }
+
+  .is-disabled {
+    color: rgba(17, 17, 17, 0.45);
+    cursor: not-allowed;
   }
 }
 
@@ -603,7 +609,8 @@ ul {
 
     .lang-switch {
       a,
-      button {
+      button,
+      span {
         min-width: 1.8rem;
         min-height: 1.6rem;
         font-size: 0.68rem;
@@ -1384,6 +1391,10 @@ ul {
   }
 }
 
+.blog-section {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
 .blog-shell {
   min-height: 100vh;
   background: #fafbfd;

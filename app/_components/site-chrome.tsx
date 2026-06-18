@@ -4,6 +4,7 @@ import { dict, locales, type Locale } from "../lib/i18n";
 type HeaderProps = {
   locale: Locale;
   currentPath?: string;
+  localeLinks?: Partial<Record<Locale, string | null>>;
   actionHref?: string;
   actionLabel?: string;
 };
@@ -11,6 +12,7 @@ type HeaderProps = {
 export function SiteHeader({
   locale,
   currentPath = "",
+  localeLinks,
   actionHref = `/${locale}`,
   actionLabel,
 }: HeaderProps) {
@@ -26,16 +28,28 @@ export function SiteHeader({
 
         <div className="header__actions">
           <div className="lang-switch" role="group" aria-label={t.langSwitcherLabel}>
-            {locales.map((item) => (
-              <Link
-                key={item}
-                href={`/${item}${currentPath}`}
-                className={item === locale ? "active" : ""}
-                aria-current={item === locale ? "page" : undefined}
-              >
-                {item.toUpperCase()}
-              </Link>
-            ))}
+            {locales.map((item) => {
+              const href = localeLinks ? localeLinks[item] ?? null : `/${item}${currentPath}`;
+
+              if (!href) {
+                return (
+                  <span key={item} className="is-disabled" aria-disabled="true">
+                    {item.toUpperCase()}
+                  </span>
+                );
+              }
+
+              return (
+                <Link
+                  key={item}
+                  href={href}
+                  className={item === locale ? "active" : ""}
+                  aria-current={item === locale ? "page" : undefined}
+                >
+                  {item.toUpperCase()}
+                </Link>
+              );
+            })}
           </div>
 
           {actionLabel ? (
@@ -65,7 +79,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t.footerFarid}
+            {t.footerFarid} 
           </a>
         </div>
         <div className="site-footer__links">

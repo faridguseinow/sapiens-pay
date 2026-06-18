@@ -9,7 +9,7 @@ import { blogUi, formatPostDate } from "@/app/lib/blog";
 import { dict, isLocale, locales, type Locale } from "@/app/lib/i18n";
 import { isSanityConfigured, sanityClient } from "@/lib/sanity.client";
 import { urlForImage } from "@/lib/sanity.image";
-import { postBySlugQuery, postSlugsQuery } from "@/lib/sanity.queries";
+import { postBySlugQuery, postRoutesQuery } from "@/lib/sanity.queries";
 
 type Post = {
   _id: string;
@@ -20,6 +20,11 @@ type Post = {
   content?: PortableTextBlock[];
   coverImage?: unknown;
   coverImageUrl?: string;
+  _translations?: Array<{
+    language?: string;
+    slug?: string;
+    title?: string;
+  }>;
 };
 
 type BlockChild = {
@@ -41,23 +46,17 @@ const toAnchorId = (text: string) =>
     .trim()
     .replace(/\s+/g, "-");
 
-const localizedRoutes = locales.map((locale) => ({ locale }));
-
 export async function generateStaticParams() {
   if (!isSanityConfigured) {
     return [];
   }
 
-  const azFallback = await sanityClient.fetch<Array<{ slug: string }>>(postSlugsQuery, { locale: "az" });
-  const rows = await Promise.all(
-    localizedRoutes.map(async ({ locale }) => {
-      const posts = await sanityClient.fetch<Array<{ slug: string }>>(postSlugsQuery, { locale });
-      const source = posts.length > 0 || locale === "az" ? posts : azFallback;
-      return source.map((post) => ({ locale, slug: post.slug }));
-    }),
-  );
-
-  return rows.flat();
+  const routes = await sanityClient.fetch<Array<{ locale?: string; slug?: string }>>(postRoutesQuery, { locales });
+  return routes
+    .filter((route): route is { locale: Locale; slug: string } => {
+      return typeof route.slug === "string" && typeof route.locale === "string" && isLocale(route.locale);
+    })
+    .map(({ locale, slug }) => ({ locale, slug }));
 }
 
 export default async function LocalizedBlogPostPage({
@@ -77,10 +76,7 @@ export default async function LocalizedBlogPostPage({
     notFound();
   }
 
-  let post = await sanityClient.fetch<Post | null>(postBySlugQuery, { slug, locale });
-  if (!post && locale !== "az") {
-    post = await sanityClient.fetch<Post | null>(postBySlugQuery, { slug, locale: "az" });
-  }
+  const post = await sanityClient.fetch<Post | null>(postBySlugQuery, { slug, locale });
 
   if (!post) {
     notFound();
@@ -120,6 +116,19 @@ export default async function LocalizedBlogPostPage({
     ? urlForImage(post.coverImage).width(1400).height(860).url()
     : post.coverImageUrl ?? null;
   const publishedDate = formatPostDate(locale, post.publishedAt);
+  const localeLinks = Object.fromEntries(
+    locales.map((item) => {
+      if (item === locale) {
+        return [item, `/${locale}/blog/${slug}`];
+      }
+
+      const translation = (post._translations ?? []).find(
+        (entry) => entry.language === item && typeof entry.slug === "string",
+      );
+
+      return [item, translation ? `/${item}/blog/${translation.slug}` : null];
+    }),
+  ) as Partial<Record<Locale, string | null>>;
 
   const portableTextComponents = {
     block: {
@@ -139,6 +148,7 @@ export default async function LocalizedBlogPostPage({
       <SiteHeader
         locale={locale}
         currentPath={`/blog/${slug}`}
+        localeLinks={localeLinks}
         actionHref={`/${locale}/blog`}
         actionLabel={ui.allPosts}
       />

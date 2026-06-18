@@ -11,6 +11,7 @@ import { MoneyRain } from "../_components/money-rain";
 import { AboutStory } from "../_components/about-story";
 import { ServicesShowcase } from "../_components/services-showcase";
 import { LeadQuiz } from "../_components/lead-quiz";
+import { blogUi } from "../lib/blog";
 import { isSanityConfigured, sanityClient } from "@/lib/sanity.client";
 import { postsQuery } from "@/lib/sanity.queries";
 import { urlForImage } from "@/lib/sanity.image";
@@ -67,16 +68,10 @@ export default async function LocalizedPage({
       cta: "View all posts",
     },
   }[locale];
+  const blogSectionUi = blogUi[locale];
 
   const latestPosts: BlogPostPreview[] = isSanityConfigured
-    ? await (async () => {
-        const localized = await sanityClient.fetch<BlogPostPreview[]>(postsQuery, { locale });
-        if (localized.length > 0 || locale === "az") {
-          return localized.slice(0, 3);
-        }
-
-        return sanityClient.fetch<BlogPostPreview[]>(postsQuery, { locale: "az" }).then((items) => items.slice(0, 3));
-      })()
+    ? (await sanityClient.fetch<BlogPostPreview[]>(postsQuery, { locale })).slice(0, 3)
     : [];
 
   const dateLocaleMap: Record<Locale, string> = {
@@ -167,19 +162,19 @@ export default async function LocalizedPage({
 
       <LeadQuiz locale={locale} />
 
-      {latestPosts.length > 0 ? (
-        <section className="section blog-preview" id="blog-preview">
-          <div className="container">
-            <div className="blog-preview__head">
-              <div>
-                <h2>{blogCopy.title}</h2>
-                <p className="partners__lead">{blogCopy.lead}</p>
-              </div>
-              <Link className="btn btn--ghost" href={`/${locale}/blog`}>
-                {blogCopy.cta}
-              </Link>
+      <section className="section blog-preview" id="blog-preview">
+        <div className="container">
+          <div className="blog-preview__head">
+            <div>
+              <h2>{blogCopy.title}</h2>
+              <p className="partners__lead">{blogCopy.lead}</p>
             </div>
+            <Link className="btn btn--ghost" href={`/${locale}/blog`}>
+              {blogCopy.cta}
+            </Link>
+          </div>
 
+          {latestPosts.length > 0 ? (
             <div className="blog-preview__grid">
               {latestPosts.map((post) => {
                 const imageUrl = post.coverImage
@@ -212,9 +207,11 @@ export default async function LocalizedPage({
                 );
               })}
             </div>
-          </div>
-        </section>
-      ) : null}
+          ) : (
+            <p className="blog-empty">{blogSectionUi.noPosts}</p>
+          )}
+        </div>
+      </section>
 
       <section className="section socials" id="socials">
         <div className="container">

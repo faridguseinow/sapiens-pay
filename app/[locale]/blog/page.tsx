@@ -35,16 +35,7 @@ export default async function LocalizedBlogPage({
   const locale = localeParam;
   const ui = blogUi[locale];
 
-  const posts = isSanityConfigured
-    ? await (async () => {
-        const localized = await sanityClient.fetch<Post[]>(postsQuery, { locale });
-        if (localized.length > 0 || locale === "az") {
-          return localized;
-        }
-
-        return sanityClient.fetch<Post[]>(postsQuery, { locale: "az" });
-      })()
-    : [];
+  const posts = isSanityConfigured ? await sanityClient.fetch<Post[]>(postsQuery, { locale }) : [];
 
   return (
     <main className="blog-shell">
@@ -58,7 +49,7 @@ export default async function LocalizedBlogPage({
         </div>
       </section>
 
-      <section className="section">
+      <section className="section blog-section">
         <div className="container">
           {!isSanityConfigured ? (
             <p className="blog-empty">{ui.notConfigured}</p>
