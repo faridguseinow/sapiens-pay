@@ -42,7 +42,7 @@ export default async function LocalizedBlogPage({
       <SiteHeader locale={locale} currentPath="/blog" actionHref={`/${locale}`} actionLabel={ui.backToSite} />
 
       <section className="section blog-page__hero">
-        <div className="container">
+        <div className="container blog-page__hero-content">
           <p className="tag">{ui.badge}</p>
           <h1>{ui.title}</h1>
           <p className="lead">{ui.lead}</p>

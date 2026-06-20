@@ -1,4 +1,40 @@
-import { defineField, defineType } from "sanity";
+import { defineField, defineType, getPublishedId } from "sanity";
+
+const SANITY_API_VERSION = "2025-02-19";
+
+async function isUniquePostSlugPerLanguage(
+  slug: string,
+  context: {
+    document?: { _id?: string; language?: string };
+    getClient: (options: { apiVersion: string }) => {
+      fetch: <T>(query: string, params: Record<string, unknown>) => Promise<T>;
+    };
+  },
+) {
+  const id = context.document?._id;
+  const language = context.document?.language;
+
+  if (!id || !language || !slug) {
+    return true;
+  }
+
+  const client = context.getClient({ apiVersion: SANITY_API_VERSION });
+  const publishedId = getPublishedId(id);
+  const isUnique = await client.fetch<boolean>(
+    `!defined(*[
+      !sanity::versionOf($published) &&
+      slug.current == $slug &&
+      language == $language
+    ][0]._id)`,
+    {
+      published: publishedId,
+      slug,
+      language,
+    },
+  );
+
+  return isUnique || false;
+}
 
 export const postType = defineType({
   name: "post",
@@ -23,7 +59,11 @@ export const postType = defineType({
       name: "slug",
       title: "Slug",
       type: "slug",
-      options: { source: "title", maxLength: 96 },
+      options: {
+        source: "title",
+        maxLength: 96,
+        isUnique: isUniquePostSlugPerLanguage,
+      },
       validation: (rule) => rule.required(),
     }),
     defineField({
