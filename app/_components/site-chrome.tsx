@@ -73,14 +73,14 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           <p>
             © {new Date().getFullYear()} Sapiens Pay. {t.footerRights}
           </p>
-          <a
+          {/* <a
             className="site-footer__credit"
             href="https://faridguseinow.framer.website/"
             target="_blank"
             rel="noopener noreferrer"
           >
             {t.footerFarid} 
-          </a>
+          </a> */}
         </div>
         <div className="site-footer__links">
           <Link href={`/${locale}/privacy-policy`}>{t.footerPrivacy}</Link>

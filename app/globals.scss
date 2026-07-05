@@ -36,6 +36,7 @@ body {
     padding: 0.34rem 0.52rem;
     border-radius: 0.48rem;
     background: var(--accent);
+    color: #1c1e19;
     font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: -0.04em;
@@ -3296,7 +3297,7 @@ ul {
   overflow: visible;
 
   > .container {
-    width: min(100% - 2rem, 1240px);
+    width: min(100% - 2rem, 1080px);
   }
 
   .hero-card {
@@ -3305,7 +3306,7 @@ ul {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: clamp(1.5rem, 4vw, 3.2rem);
+    padding: clamp(1.15rem, 4vw, 2.2rem);
     border: 1px solid #e9eae6;
     border-radius: clamp(1.5rem, 3vw, 3rem);
     background:
@@ -3403,7 +3404,6 @@ ul {
       grid-template-columns: minmax(16rem, 0.8fr) minmax(18rem, 1fr);
       gap: clamp(2rem, 7vw, 7rem);
       align-items: center;
-      margin-top: auto;
       padding-top: 3.5rem;
     }
 
@@ -3515,7 +3515,7 @@ ul {
     padding-top: 0.7rem;
 
     > .container {
-      width: min(100% - 1.2rem, 1240px);
+      width: min(100% - 1.2rem, 1080px);
     }
 
     .hero-card {
@@ -3536,7 +3536,6 @@ ul {
       }
 
       h1 {
-        margin-top: 3.8rem;
         font-size: clamp(2.5rem, 12vw, 4.2rem);
         line-height: 1.07;
         letter-spacing: -0.04em;
@@ -3557,7 +3556,6 @@ ul {
       }
 
       &__footnote {
-        margin-top: 1.5rem;
         line-height: 1.5;
       }
     }
@@ -4942,7 +4940,7 @@ ul {
     #fff;
 
   .container {
-    width: min(100% - 2rem, 1240px);
+    width: min(100% - 2rem, 1080px);
   }
 
   .tag {
@@ -5425,9 +5423,8 @@ ul {
   .landing .service-card:nth-child(3),
   .landing .service-card:nth-child(4) {
     min-height: 23rem;
-    grid-column: auto;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.8fr);
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 1fr);
   }
 
   .landing .service-card:nth-child(4) {
@@ -5440,13 +5437,13 @@ ul {
 
 @media (max-width: 640px) {
   .landing .services-showcase .container {
-    width: min(100% - 1.2rem, 1240px);
+    width: min(100% - 1.2rem, 1080px);
   }
 
   .landing .service-card,
   .landing .service-card:nth-child(3),
   .landing .service-card:nth-child(4) {
-    min-height: 34rem;
+    min-height: 30rem;
     display: flex;
     flex-direction: column;
   }
