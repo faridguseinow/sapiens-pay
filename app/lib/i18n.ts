@@ -32,6 +32,9 @@ export type Dictionary = {
   service2Text: string;
   service3Title: string;
   service3Text: string;
+  service4Title: string;
+  service4Text: string;
+  serviceDetails: string;
   servicesAction: string;
   aboutTitle: string;
   card1Title: string;
@@ -79,50 +82,54 @@ export const dict: Record<Locale, Dictionary> = {
     headerHome: "Ana səhifə",
     langSwitcherLabel: "Dil seçimi",
     heroTag: "Sapiens Pay",
-    heroTitle: "Reklam büdcənizi bank komissiyalarına qurban verməyin!",
+    heroTitle: "Beynəlxalq bazarda işləmək üçün kompleks ödəniş həlləri",
     heroLead:
-      "Meta, Google Ads və TikTok reklam ödənişləri üçün xarici bank kartlarının rəsmi açılışı. Daha az xərc, daha çox nəticə.",
-    heroPrimary: "İndi başla",
+      "Xarici bank hesabı, Shopify Payments, xarici şirkət və beynəlxalq ödəniş sistemlərini bir mərkəzdən qururuq.",
+    heroPrimary: "Konsultasiya al",
     heroSecondary: "Haqqımızda",
     partnersTitle: "Azərbaycanda bir çox şirkətlə əməkdaşlıq edirik",
     partnersLead:
-      "Aşağıdakı loqolar hazırda placeholder formatındadır və istədiyiniz vaxt real brend loqoları ilə əvəz oluna bilər.",
+      "Bizneslərin beynəlxalq ödəniş və satış infrastrukturunu daha rahat qurmasına dəstək oluruq.",
     aboutStoryEyebrow: "Haqqımızda",
     aboutStoryTitle: "Sapiens Pay beynəlxalq işləmək istəyən bizneslər üçün qurulub.",
     aboutStoryLead:
-      "Reklam ödənişləri, xarici kartlar və satış infrastrukturu kimi mövzuları daha aydın, daha rahat və daha dayanıqlı sistemə çeviririk.",
+      "Bank hesabından şirkət qeydiyyatına və ödəniş qəbuluna qədər beynəlxalq biznes infrastrukturunu aydın prosesə çeviririk.",
     aboutStoryParagraph1:
       "Sapiens Pay Azərbaycandakı sahibkarlar, agentliklər və onlayn bizneslər üçün beynəlxalq ödəniş və satış infrastrukturunu daha əlçatan etmək məqsədilə yaradılıb.",
     aboutStoryParagraph2:
-      "Biz gördük ki, bir çox biznes reklam ödənişləri, xarici bank kartları, beynəlxalq ödəniş alətləri, marketplace hesabları və xarici şirkət strukturu kimi mövzularda çətinlik yaşayır. Bu çətinliklər isə əlavə xərc, vaxt itkisi və böyümənin ləngiməsi ilə nəticələnir.",
+      "Bir çox biznes xarici hesab seçimi, Shopify Payments, şirkət strukturu və Stripe və PayPal kimi ödəniş sistemlərinə çıxış zamanı çətinlik yaşayır. Biz bu mərhələləri vahid plan üzrə idarə edirik.",
     aboutStoryParagraph3:
-      "Sapiens Pay olaraq məqsədimiz bu prosesi sadələşdirməkdir. Biz müştərilərimizə reklam ödənişləri üçün uyğun həllər, xarici bank kartı dəstəyi, beynəlxalq ödəniş sistemlərinə çıxış, e-commerce və marketplace fəaliyyətləri üçün praktik istiqamətləndirmə təqdim edirik.",
+      "Wise Personal, Wise Business və Payoneer Business hesablarından Shopify Payments quraşdırılmasına, xarici şirkət qeydiyyatından beynəlxalq ödəniş sistemlərinə qədər ehtiyacınıza uyğun həll təqdim edirik.",
     aboutStoryParagraph4:
       "Bizim yanaşmamız sadədir: şəffaf proses, aydın yönləndirmə və real nəticə. Hədəfimiz təkcə bir xidməti təqdim etmək deyil, biznesinizin beynəlxalq işləməsi üçün daha düzgün və dayanıqlı sistem qurmağa kömək etməkdir.",
     servicesEyebrow: "Xidmətlərimiz",
-    servicesTitle: "Biznesiniz üçün ən çox tələb olunan 3 həll",
+    servicesTitle: "Biznesinizi dünyaya açan dörd əsas xidmət",
     servicesLead:
-      "Komissiya itkisini azaldır, ödənişi rahatlaşdırır və satış prosesini aktiv edir.",
-    service1Title: "Reklam ödənişlərində komissiyanı azalt",
+      "Bankçılıqdan ödəniş qəbuluna və şirkət strukturuna qədər beynəlxalq fəaliyyətiniz üçün vahid həll təqdim edirik.",
+    service1Title: "Xarici bank hesablarının açılması",
     service1Text:
-      "500$ reklam büdcəsi komissiya ilə 600$ olmasın. Wise kartı ilə ödəniş xərclərini minimuma endiririk.",
-    service2Title: "Azərbaycandan Wise kart açılışı",
+      "Şəxsi və biznes ehtiyaclarınıza uyğun xarici bank hesabının seçilməsi, sənədlərin hazırlanması və müraciət prosesi boyunca dəstək.",
+    service2Title: "Shopify Payments quraşdırılması",
     service2Text:
-      "Onlayn, sürətli və rahat proses. Heç yerə getmədən Wise kart dəstəyi ilə beynəlxalq ödənişlərə çıxış.",
-    service3Title: "Shopify Payments quraşdırılması",
+      "Shopify mağazanızda beynəlxalq ödənişləri stabil qəbul etmək üçün ödəniş infrastrukturunu düzgün qurur və aktivləşdiririk.",
+    service3Title: "Xarici şirkət açılması",
     service3Text:
-      "Mağazanızda ödəniş sistemini düzgün qururuq ki, satış dayanmadan davam etsin.",
-    servicesAction: "İndi yaz, birlikdə başlayaq",
+      "Fəaliyyətinizə uyğun ölkə və şirkət modelini müəyyənləşdirir, qeydiyyat və ilkin sənədləşmə prosesini bir mərkəzdən idarə edirik.",
+    service4Title: "Beynəlxalq ödəniş sistemlərinin qoşulması",
+    service4Text:
+      "Stripe, PayPal və digər beynəlxalq ödəniş həllərini biznes modelinizə uyğun şəkildə quraraq stabil ödəniş qəbuluna kömək edirik.",
+    serviceDetails: "Ətraflı məlumat",
+    servicesAction: "Biznesiniz üçün uyğun həlli seçək",
     aboutTitle: "Niyə Sapiens Pay",
     card1Title: "Tam rəsmi proses",
-    card1Text: "Bakı ofisində şəffaf və güvənli şəkildə bütün mərhələlər.",
-    card2Title: "Maksimum qənaət",
-    card2Text: "Davamlı komissiya ödəmək əvəzinə, bir dəfə düzgün sistem qur.",
-    card3Title: "Biznesə fokus",
-    card3Text: "Qənaət olunan büdcəni yenidən reklama və satışa yönəlt.",
+    card1Text: "Tələblər, sənədlər və mərhələlər əvvəlcədən aydın şəkildə təqdim olunur.",
+    card2Title: "Ehtiyaca uyğun həll",
+    card2Text: "Şəxsi hesabdan tam şirkət və ödəniş infrastrukturuna qədər uyğun modeli seçirik.",
+    card3Title: "Bir mərkəzdən dəstək",
+    card3Text: "Bank, Shopify, şirkət və ödəniş sistemi proseslərini əlaqəli şəkildə idarə edirik.",
     contactTitle: "Bizə mesaj göndərin",
     contactLead:
-      "Forma hazırdır. Backend inteqrasiyası növbəti mərhələdə qoşulacaq.",
+      "Xidmətinizi və ehtiyacınızı seçin, müraciətiniz birbaşa komandamıza daxil olsun.",
     formName: "Ad və soyad",
     formNamePlaceholder: "Adınız",
     formEmail: "E-poçt",
@@ -132,8 +139,8 @@ export const dict: Record<Locale, Dictionary> = {
     formMessage: "Mesaj",
     formMessagePlaceholder: "Biznesiniz və sorğunuz haqqında qısa məlumat yazın",
     formSubmit: "Göndər",
-    ctaText: "Min dəfə komissiya ödəməkdənsə bir dəfə rəsmi kart sahibi ol.",
-    ctaButton: "Bizimlə əlaqə",
+    ctaText: "Hansı həllin uyğun olduğunu bilmirsiniz? Ehtiyacınızı qeyd edin, sizə doğru istiqaməti göstərək.",
+    ctaButton: "Konsultasiya al",
     mobileHome: "Ana səhifə",
     mobileCall: "Zəng et",
     mobileLead: "Müraciət et",
@@ -160,51 +167,54 @@ export const dict: Record<Locale, Dictionary> = {
     headerHome: "Главная",
     langSwitcherLabel: "Выбор языка",
     heroTag: "Sapiens Pay",
-    heroTitle: "Не жертвуйте рекламным бюджетом ради банковских комиссий!",
+    heroTitle: "Комплексные платёжные решения для работы на международном рынке",
     heroLead:
-      "Официальное открытие зарубежных банковских карт для платежей в Meta, Google Ads и TikTok. Меньше расходов, больше результата.",
-    heroPrimary: "Начать сейчас",
+      "В одном месте настраиваем зарубежные счета, Shopify Payments, иностранные компании и международные платёжные системы.",
+    heroPrimary: "Получить консультацию",
     heroSecondary: "О нас",
     partnersTitle: "Мы сотрудничаем со многими компаниями в Азербайджане",
     partnersLead:
-      "Логотипы ниже пока в формате placeholder и могут быть заменены на реальные в любой момент.",
+      "Помогаем бизнесу выстраивать удобную инфраструктуру международных платежей и продаж.",
     aboutStoryEyebrow: "О нас",
     aboutStoryTitle: "Sapiens Pay создан для бизнеса, который хочет работать международно без лишней путаницы.",
     aboutStoryLead:
-      "Мы упрощаем рекламные платежи, зарубежные карты и инфраструктуру продаж, превращая сложный процесс в понятную рабочую систему.",
+      "Превращаем международную инфраструктуру — от банковского счёта до компании и приёма платежей — в понятный процесс.",
     aboutStoryParagraph1:
       "Sapiens Pay был создан, чтобы сделать международные платежи и инфраструктуру продаж более доступными для предпринимателей, агентств и онлайн-бизнесов в Азербайджане.",
     aboutStoryParagraph2:
-      "Мы увидели, что многие компании сталкиваются с трудностями в вопросах рекламных платежей, зарубежных банковских карт, международных платежных инструментов, аккаунтов marketplace и структуры иностранных компаний. Это приводит к дополнительным расходам, потере времени и замедлению роста.",
+      "Многие компании сталкиваются со сложностями при выборе зарубежного счёта, подключении Shopify Payments, построении структуры компании и доступе к Stripe или PayPal. Мы объединяем эти этапы в единый план.",
     aboutStoryParagraph3:
-      "Наша цель в Sapiens Pay — упростить этот путь. Мы предлагаем подходящие решения для рекламных платежей, поддержку по зарубежным банковским картам, доступ к международным платежным системам и практическое сопровождение для e-commerce и работы с marketplace.",
+      "Мы сопровождаем открытие Wise Personal, Wise Business и Payoneer Business, настройку Shopify Payments, регистрацию зарубежной компании и подключение международных платёжных систем.",
     aboutStoryParagraph4:
       "Наш подход прост: прозрачный процесс, понятная навигация и реальный результат. Наша задача не просто оказать одну услугу, а помочь выстроить более правильную и устойчивую систему для международной работы вашего бизнеса.",
     servicesEyebrow: "Наши услуги",
-    servicesTitle: "3 решения, которые чаще всего нужны бизнесу",
+    servicesTitle: "Четыре ключевые услуги для выхода бизнеса на международный рынок",
     servicesLead:
-      "Снижаем потери на комиссиях, открываем доступ к международным платежам и запускаем прием оплат.",
-    service1Title: "Меньше комиссий на рекламных платежах",
+      "Объединяем зарубежный банкинг, прием платежей и корпоративную структуру в одном понятном процессе.",
+    service1Title: "Открытие зарубежных банковских счетов",
     service1Text:
-      "Чтобы из бюджета 500$ не уходило 600$ с комиссиями. Настраиваем оплату через Wise и сокращаем лишние расходы.",
-    service2Title: "Открытие Wise карты из Азербайджана",
+      "Подбираем подходящий зарубежный счет для личных или бизнес-задач, готовим документы и сопровождаем процесс подачи заявки.",
+    service2Title: "Настройка Shopify Payments",
     service2Text:
-      "Онлайн, быстро и без лишних шагов. Получаете удобный инструмент для международных платежей.",
-    service3Title: "Подключение Shopify Payments",
+      "Настраиваем платежную инфраструктуру Shopify, чтобы магазин стабильно принимал международные платежи.",
+    service3Title: "Открытие зарубежной компании",
     service3Text:
-      "Настраиваем платежную систему в магазине, чтобы вы могли стабильно принимать оплаты и не терять продажи.",
-    servicesAction: "Напишите нам и начнем",
+      "Помогаем выбрать страну и формат компании, сопровождаем регистрацию и оформление стартового пакета документов.",
+    service4Title: "Подключение международных платежных систем",
+    service4Text:
+      "Подключаем Stripe, PayPal и другие международные решения под вашу бизнес-модель для стабильного приема платежей.",
+    serviceDetails: "Подробнее",
+    servicesAction: "Подберем решение для вашего бизнеса",
     aboutTitle: "Почему Sapiens Pay",
     card1Title: "Полностью официальный процесс",
-    card1Text: "Все этапы прозрачно и безопасно в офисе в Баку.",
-    card2Title: "Максимальная экономия",
-    card2Text:
-      "Вместо постоянных комиссий один раз выстройте правильную систему.",
-    card3Title: "Фокус на бизнесе",
-    card3Text: "Направляйте сэкономленный бюджет обратно в рекламу и продажи.",
+    card1Text: "Требования, документы и этапы процесса понятны заранее.",
+    card2Title: "Решение под задачу",
+    card2Text: "Подбираем модель от личного счёта до компании и полной платёжной инфраструктуры.",
+    card3Title: "Поддержка в одном месте",
+    card3Text: "Связываем банковские, Shopify, корпоративные и платёжные процессы.",
     contactTitle: "Отправьте нам сообщение",
     contactLead:
-      "Форма готова. Интеграция backend будет подключена на следующем этапе.",
+      "Выберите услугу и опишите задачу — заявка сразу поступит нашей команде.",
     formName: "Имя и фамилия",
     formNamePlaceholder: "Ваше имя",
     formEmail: "Эл. почта",
@@ -214,9 +224,8 @@ export const dict: Record<Locale, Dictionary> = {
     formMessage: "Сообщение",
     formMessagePlaceholder: "Кратко опишите ваш бизнес и запрос",
     formSubmit: "Отправить",
-    ctaText:
-      "Вместо сотен комиссий выгоднее один раз стать владельцем официальной карты.",
-    ctaButton: "Связаться с нами",
+    ctaText: "Не уверены, какое решение подходит? Опишите задачу, и мы предложим правильное направление.",
+    ctaButton: "Получить консультацию",
     mobileHome: "Главная",
     mobileCall: "Позвонить",
     mobileLead: "Оставить заявку",
@@ -242,50 +251,54 @@ export const dict: Record<Locale, Dictionary> = {
     headerHome: "Home",
     langSwitcherLabel: "Language switcher",
     heroTag: "Sapiens Pay",
-    heroTitle: "Stop sacrificing your ad budget to bank fees!",
+    heroTitle: "Complete payment solutions for operating in global markets",
     heroLead:
-      "Official foreign bank card setup for Meta, Google Ads, and TikTok payments. Lower costs, stronger performance.",
-    heroPrimary: "Start now",
+      "We set up foreign accounts, Shopify Payments, foreign companies, and international payment systems in one place.",
+    heroPrimary: "Get a consultation",
     heroSecondary: "About us",
     partnersTitle: "We collaborate with many companies in Azerbaijan",
     partnersLead:
-      "The logos below are placeholders for now and can be replaced with real brand logos anytime.",
+      "We help businesses build a more practical infrastructure for international payments and sales.",
     aboutStoryEyebrow: "About",
     aboutStoryTitle: "Sapiens Pay was built for businesses that want to operate internationally with less friction.",
     aboutStoryLead:
-      "We simplify ad payments, foreign cards, and sales infrastructure so the path from local business to global operations feels clearer and more stable.",
+      "We turn international business infrastructure—from bank accounts to company formation and payment acceptance—into a clear process.",
     aboutStoryParagraph1:
       "Sapiens Pay was created to make international payments and sales infrastructure more accessible for entrepreneurs, agencies, and online businesses in Azerbaijan.",
     aboutStoryParagraph2:
-      "We saw that many businesses struggle with ad payments, foreign bank cards, international payment tools, marketplace accounts, and foreign company structures. Those barriers often lead to extra costs, lost time, and slower growth.",
+      "Many businesses face challenges when choosing a foreign account, enabling Shopify Payments, forming a company, or accessing Stripe and PayPal. We manage these stages as one plan.",
     aboutStoryParagraph3:
-      "Our goal is to simplify that process. We provide practical guidance for ad payment solutions, support with foreign bank cards, access to international payment systems, and hands-on direction for e-commerce and marketplace activity.",
+      "We support Wise Personal, Wise Business and Payoneer Business accounts, Shopify Payments setup, foreign company formation, and international payment system integration.",
     aboutStoryParagraph4:
       "Our approach is simple: a transparent process, clear guidance, and real outcomes. We are not here just to deliver a one-off service, but to help build a more reliable system for your business to operate internationally.",
     servicesEyebrow: "Our Services",
-    servicesTitle: "3 core solutions businesses ask for most",
+    servicesTitle: "Four essential services for taking your business global",
     servicesLead:
-      "We reduce fee losses, unlock international payments, and help you accept money without friction.",
-    service1Title: "Cut extra fees on ad payments",
+      "We bring international banking, payment acceptance, and company setup into one clear process.",
+    service1Title: "Foreign bank account setup",
     service1Text:
-      "Your 500 USD ad budget should not turn into 600 USD after commissions. We optimize the flow with Wise-based payments.",
-    service2Title: "Wise card setup from Azerbaijan",
+      "We help select the right foreign account for personal or business use, prepare the documents, and support the application process.",
+    service2Title: "Shopify Payments setup",
     service2Text:
-      "Fast online onboarding with no unnecessary complexity, so you can use a practical tool for global payments.",
-    service3Title: "Shopify Payments setup",
+      "We configure the payment infrastructure your Shopify store needs to accept international payments reliably.",
+    service3Title: "Foreign company formation",
     service3Text:
-      "We configure the payment layer in your store so you can start accepting payments and avoid losing ready-to-buy customers.",
-    servicesAction: "Message us and get started",
+      "We help choose the right jurisdiction and company structure, then guide registration and initial documentation.",
+    service4Title: "International payment system integration",
+    service4Text:
+      "We connect Stripe, PayPal, and other global payment solutions to help your business accept payments reliably.",
+    serviceDetails: "Learn more",
+    servicesAction: "Choose the right solution for your business",
     aboutTitle: "Why Sapiens Pay",
     card1Title: "Fully official process",
-    card1Text: "Every step is transparent and secure at our Baku office.",
-    card2Title: "Maximum savings",
-    card2Text: "Instead of paying recurring fees, set up the right system once.",
-    card3Title: "Business-first focus",
-    card3Text: "Reinvest saved budget into ads and customer growth.",
+    card1Text: "Requirements, documents, and process stages are clear from the start.",
+    card2Title: "A solution that fits",
+    card2Text: "We select the right model, from a personal account to a company and full payment infrastructure.",
+    card3Title: "One-point support",
+    card3Text: "We coordinate banking, Shopify, company, and payment-system processes.",
     contactTitle: "Send us a message",
     contactLead:
-      "The form is ready. Backend integration will be added in the next phase.",
+      "Choose a service and describe your needs—your request will go directly to our team.",
     formName: "Full name",
     formNamePlaceholder: "Your name",
     formEmail: "Email",
@@ -295,9 +308,8 @@ export const dict: Record<Locale, Dictionary> = {
     formMessage: "Message",
     formMessagePlaceholder: "Share a short note about your business and request",
     formSubmit: "Send",
-    ctaText:
-      "Instead of paying fees over and over, become an official card holder once.",
-    ctaButton: "Contact us",
+    ctaText: "Not sure which solution fits? Tell us what you need and we will recommend the right direction.",
+    ctaButton: "Get a consultation",
     mobileHome: "Home",
     mobileCall: "Call",
     mobileLead: "Apply now",

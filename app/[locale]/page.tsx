@@ -1,21 +1,20 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import partner1 from "../media/partners/partner-1.png";
 import partner2 from "../media/partners/partner-2.png";
 import partner3 from "../media/partners/partner-3.png";
 import partner4 from "../media/partners/partner-4.png";
 import { MobileFooterNav, SiteFooter, SiteHeader } from "../_components/site-chrome";
 import { Parallax } from "../_components/parallax";
-import { MoneyRain } from "../_components/money-rain";
 import { AboutStory } from "../_components/about-story";
 import { ServicesShowcase } from "../_components/services-showcase";
-import { LeadQuiz } from "../_components/lead-quiz";
+import { ConsultationExperience } from "../_components/consultation-experience";
 import { blogUi } from "../lib/blog";
-import { isSanityConfigured, sanityClient } from "@/lib/sanity.client";
-import { postsQuery } from "@/lib/sanity.queries";
-import { urlForImage } from "@/lib/sanity.image";
+import { getPublishedPosts } from "@/lib/posts";
 import { dict, isLocale, locales, type Locale } from "../lib/i18n";
+import { localizedMetadata } from "../lib/seo";
 
 const partners = [
   { name: "Partner 1", src: partner1, href: "https://www.instagram.com/nurs_boymax/" },
@@ -28,15 +27,33 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-type BlogPostPreview = {
-  _id: string;
-  title: string;
-  slug: string;
-  excerpt?: string;
-  publishedAt?: string;
-  coverImage?: unknown;
-  coverImageUrl?: string;
-};
+const homeMetadata = {
+  az: {
+    title: "Xarici bank hesabları və beynəlxalq ödəniş həlləri",
+    description:
+      "Wise, Payoneer, Shopify Payments, xarici şirkət qeydiyyatı, Stripe və PayPal üçün uyğunluq və quraşdırma dəstəyi.",
+  },
+  ru: {
+    title: "Зарубежные счета и международные платежные решения",
+    description:
+      "Поддержка по Wise, Payoneer, Shopify Payments, регистрации зарубежных компаний, Stripe и PayPal.",
+  },
+  en: {
+    title: "Foreign accounts and international payment solutions",
+    description:
+      "Support for Wise, Payoneer, Shopify Payments, foreign company formation, Stripe, and PayPal.",
+  },
+} as const;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  return localizedMetadata({ locale, ...homeMetadata[locale] });
+}
 
 export default async function LocalizedPage({
   params,
@@ -54,25 +71,42 @@ export default async function LocalizedPage({
   const blogCopy = {
     az: {
       title: "Bloqdan son yazılar",
-      lead: "Ödəniş sistemləri, reklam xərcləri və beynəlxalq satışlarla bağlı praktik materiallar.",
+      lead: "Xarici hesablar, Shopify Payments, şirkət qeydiyyatı və beynəlxalq ödənişlərlə bağlı praktik materiallar.",
       cta: "Bütün yazılara bax",
     },
     ru: {
       title: "Последние статьи блога",
-      lead: "Практические материалы про платежи, комиссии и международные продажи.",
+      lead: "Практические материалы о зарубежных счетах, Shopify Payments, компаниях и международных платежах.",
       cta: "Смотреть все статьи",
     },
     en: {
       title: "Latest Blog Articles",
-      lead: "Practical guides on payments, fees, and scaling online sales internationally.",
+      lead: "Practical guides to foreign accounts, Shopify Payments, company formation, and global payments.",
       cta: "View all posts",
     },
   }[locale];
   const blogSectionUi = blogUi[locale];
 
-  const latestPosts: BlogPostPreview[] = isSanityConfigured
-    ? (await sanityClient.fetch<BlogPostPreview[]>(postsQuery, { locale })).slice(0, 3)
-    : [];
+  const latestPosts = await getPublishedPosts(locale, 3);
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://sapiens-pay.com/#organization",
+        name: "Sapiens Pay",
+        url: "https://sapiens-pay.com",
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://sapiens-pay.com/#website",
+        url: "https://sapiens-pay.com",
+        name: "Sapiens Pay",
+        publisher: { "@id": "https://sapiens-pay.com/#organization" },
+        inLanguage: locale,
+      },
+    ],
+  };
 
   const dateLocaleMap: Record<Locale, string> = {
     az: "az-AZ",
@@ -82,31 +116,18 @@ export default async function LocalizedPage({
 
   return (
     <main className="landing" lang={locale}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <Parallax />
-      <SiteHeader locale={locale} actionHref="#muraciet" actionLabel={t.headerCta} />
+      <SiteHeader locale={locale} actionHref="#consultation" actionLabel={t.headerCta} />
 
-      <section className="hero section" id="home">
-        <MoneyRain />
-        <div className="container">
-          <p className="tag" data-parallax data-speed="-0.03">
-            {t.heroTag}
-          </p>
-          <h1>{t.heroTitle}</h1>
-          <p className="lead">{t.heroLead}</p>
-          <div className="hero__actions">
-            <a className="btn btn--primary" href="#muraciet">
-              {t.heroPrimary}
-            </a>
-            <a className="btn btn--ghost" href="#about">
-              {t.heroSecondary}
-            </a>
-          </div>
-        </div>
-        <div className="orb orb--one" data-parallax data-speed="0.08" />
-        <div className="orb orb--two" data-parallax data-speed="0.12" />
-      </section>
+      <ConsultationExperience locale={locale} copy={t} />
 
-      <ServicesShowcase t={t} />
+      <ServicesShowcase t={t} locale={locale} />
 
       <AboutStory
         eyebrow={t.aboutStoryEyebrow}
@@ -160,8 +181,6 @@ export default async function LocalizedPage({
         </div>
       </section>
 
-      <LeadQuiz locale={locale} />
-
       <section className="section blog-preview" id="blog-preview">
         <div className="container">
           <div className="blog-preview__head">
@@ -177,11 +196,9 @@ export default async function LocalizedPage({
           {latestPosts.length > 0 ? (
             <div className="blog-preview__grid">
               {latestPosts.map((post) => {
-                const imageUrl = post.coverImage
-                  ? urlForImage(post.coverImage).width(1200).height(680).url()
-                  : post.coverImageUrl ?? null;
-                const publishedDate = post.publishedAt
-                  ? new Date(post.publishedAt).toLocaleDateString(dateLocaleMap[locale], {
+                const imageUrl = post.cover_image_url;
+                const publishedDate = post.published_at
+                  ? new Date(post.published_at).toLocaleDateString(dateLocaleMap[locale], {
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
@@ -189,10 +206,10 @@ export default async function LocalizedPage({
                   : null;
 
                 return (
-                  <Link key={post._id} className="blog-preview__card" href={`/${locale}/blog/${post.slug}`}>
+                  <Link key={post.id} className="blog-preview__card" href={`/${locale}/blog/${post.slug}`}>
                     <div className="blog-preview__media">
                       {imageUrl ? (
-                        <Image src={imageUrl} alt={post.title} width={640} height={360} />
+                        <Image src={imageUrl} alt={post.title} width={640} height={360} unoptimized />
                       ) : (
                         <div className="blog-preview__placeholder" />
                       )}
@@ -236,7 +253,7 @@ export default async function LocalizedPage({
       </section>
 
       <SiteFooter locale={locale} />
-      <MobileFooterNav locale={locale} />
+      <MobileFooterNav locale={locale} onHomePage />
     </main>
   );
 }

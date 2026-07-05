@@ -18,55 +18,48 @@ npm run start
 npm run lint
 ```
 
-## Lead form email setup
+## Admin panel
 
-The lead quiz submits data to `POST /api/lead` and sends an email using Gmail SMTP.
+The Sapiens Pay admin panel is available at:
 
-Create `.env.local`:
-
-```bash
-GMAIL_USER=sapienspay@gmail.com
-GMAIL_APP_PASSWORD=your_google_app_password
-LEAD_TO_EMAIL=sapienspay@gmail.com
+```text
+http://localhost:3000/admin
 ```
 
-Optional:
+It includes:
+
+- Lead management with status, follow-up date, and internal notes
+- Blog post management in Azerbaijani, Russian, and English
+- Supabase Auth-managed private team access
+- Supabase Storage image uploads
+
+Create a Supabase project, run
+`supabase/migrations/202607020001_initial_admin.sql` in the SQL Editor, then add
+the project credentials to `.env.local`:
 
 ```bash
-LEAD_FROM_EMAIL="Sapiens Pay Leads <sapienspay@gmail.com>"
-LEAD_REPLY_TO=sapienspay@gmail.com
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 ```
 
-Notes:
-- Enable 2FA on your Google account.
-- Generate an App Password in Google Account security settings.
-- Use that App Password as `GMAIL_APP_PASSWORD` (not your main account password).
-
-## Lead form Google Sheets setup (optional)
-
-Leads can also be appended to Google Sheets in parallel with email.
-
-Add to `.env.local`:
+Telegram notifications and scheduled follow-up reminders use server-only
+environment variables:
 
 ```bash
-GOOGLE_SHEETS_CLIENT_EMAIL=service-account-name@project-id.iam.gserviceaccount.com
-GOOGLE_SHEETS_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
-GOOGLE_SHEETS_SHEET_NAME=Leads
+TELEGRAM_BOT_TOKEN=your_botfather_token
+TELEGRAM_CHAT_ID=your_chat_or_group_id
+SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
+CRON_SECRET=a_long_random_secret
 ```
 
-Alternative (single JSON secret):
+Never prefix these values with `NEXT_PUBLIC_`. The included Vercel cron calls
+`/api/cron/follow-ups` every 15 minutes. On another hosting provider, configure
+an equivalent scheduler that sends `Authorization: Bearer $CRON_SECRET`.
 
-```bash
-GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...@....iam.gserviceaccount.com"}'
-GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id
-GOOGLE_SHEETS_SHEET_NAME=Leads
-```
+Create admin accounts from Supabase Dashboard → Authentication → Users. There is
+intentionally no public sign-up page.
 
-Google setup:
-- Create a Google Cloud service account and enable **Google Sheets API**.
-- Share your Google Sheet with the service account email (`Editor` access).
-- Put the sheet ID from the URL into `GOOGLE_SHEETS_SPREADSHEET_ID`.
+## Lead form
 
-The API appends columns in this order:
-`submitted_at_iso`, `locale`, `name`, `phone`, `preferred_contact`, `estimated_yearly_loss_azn`, `business_type`, `ad_budget_usd`, `monthly_commission_usd`, `growth_plan`, `answers`.
+The lead quiz submits data to `POST /api/lead`. Leads are stored only in
+Supabase and managed from the private admin panel.

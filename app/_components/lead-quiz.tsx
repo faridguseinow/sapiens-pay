@@ -1,465 +1,485 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  getCountries,
+  getCountryCallingCode,
+  type CountryCode,
+} from "libphonenumber-js";
 import type { Locale } from "../lib/i18n";
 
-type Choice = {
-  label: string;
-  value: string;
+export type ServiceKey =
+  | "foreign-bank-accounts"
+  | "shopify-payments"
+  | "company-formation"
+  | "international-payments";
+
+export type LeadContext = {
+  service?: ServiceKey;
+  packageName?: string;
+  sourcePath?: string;
+  sourceLabel?: string;
 };
 
-type QuizCopy = {
-  step1Title: string;
-  step1Subtitle: string;
-  step2Title: string;
-  step2Subtitle: string;
-  step3Title: string;
-  step3Subtitle: string;
-  stepLabel: string;
-  next: string;
-  back: string;
-  submitLead: string;
-  successTitle: string;
-  successText: string;
-  submitErrorText: string;
-  problemBanner: string;
-  q1: string;
-  q1Options: Choice[];
-  q3: string;
-  q3Options: Choice[];
-  q5: string;
-  q5Options: Choice[];
-  q6: string;
-  q6Options: Choice[];
-  q7: string;
-  q7Placeholder: string;
-  q8: string;
-  q8Placeholder: string;
-  q9: string;
-  q9Options: Choice[];
-  submitLeadText: string;
+type Choice = { value: string; label: string };
+
+const services: Record<Locale, Choice[]> = {
+  az: [
+    { value: "foreign-bank-accounts", label: "Xarici bank hesablarının açılması" },
+    { value: "shopify-payments", label: "Shopify Payments quraşdırılması" },
+    { value: "company-formation", label: "Xarici şirkət açılması" },
+    { value: "international-payments", label: "Beynəlxalq ödəniş sistemlərinin qoşulması" },
+  ],
+  ru: [
+    { value: "foreign-bank-accounts", label: "Открытие зарубежного банковского счёта" },
+    { value: "shopify-payments", label: "Подключение Shopify Payments" },
+    { value: "company-formation", label: "Регистрация компании за рубежом" },
+    { value: "international-payments", label: "Подключение международных платёжных систем" },
+  ],
+  en: [
+    { value: "foreign-bank-accounts", label: "Foreign bank account opening" },
+    { value: "shopify-payments", label: "Shopify Payments setup" },
+    { value: "company-formation", label: "Foreign company formation" },
+    { value: "international-payments", label: "International payment system integration" },
+  ],
 };
 
-const quizCopy: Record<Locale, QuizCopy> = {
+const packages: Record<ServiceKey, Record<Locale, Choice[]>> = {
+  "foreign-bank-accounts": {
+    az: [
+      { value: "Wise Personal", label: "Wise Personal — 149 USD" },
+      { value: "Wise Business", label: "Wise Business — 249 USD" },
+      { value: "Payoneer Business", label: "Payoneer Business — 249 USD" },
+      { value: "Məsləhət lazımdır", label: "Hansı hesabın uyğun olduğuna əmin deyiləm" },
+    ],
+    ru: [
+      { value: "Wise Personal", label: "Wise Personal — 149 USD" },
+      { value: "Wise Business", label: "Wise Business — 249 USD" },
+      { value: "Payoneer Business", label: "Payoneer Business — 249 USD" },
+      { value: "Нужна консультация", label: "Не уверен, какой счёт мне подходит" },
+    ],
+    en: [
+      { value: "Wise Personal", label: "Wise Personal — USD 149" },
+      { value: "Wise Business", label: "Wise Business — USD 249" },
+      { value: "Payoneer Business", label: "Payoneer Business — USD 249" },
+      { value: "Consultation needed", label: "I am not sure which account fits" },
+    ],
+  },
+  "shopify-payments": {
+    az: [
+      { value: "Şirkətsiz quraşdırma", label: "Şirkətsiz quraşdırma — 279 USD" },
+      { value: "Şirkət üzərindən biznes", label: "Şirkət üzərindən biznes — 349 USD" },
+      { value: "Məsləhət lazımdır", label: "Uyğun paketi birlikdə seçək" },
+    ],
+    ru: [
+      { value: "Настройка без компании", label: "Настройка без компании — 279 USD" },
+      { value: "Бизнес через компанию", label: "Бизнес через компанию — 349 USD" },
+      { value: "Нужна консультация", label: "Помогите выбрать пакет" },
+    ],
+    en: [
+      { value: "Setup without company", label: "Setup without a company — USD 279" },
+      { value: "Company business setup", label: "Company business setup — USD 349" },
+      { value: "Consultation needed", label: "Help me choose a package" },
+    ],
+  },
+  "company-formation": {
+    az: [
+      { value: "ABŞ", label: "ABŞ-da şirkət" },
+      { value: "Böyük Britaniya", label: "Böyük Britaniyada şirkət" },
+      { value: "Digər ölkə", label: "Digər ölkə və ya ölkə seçimi üzrə konsultasiya" },
+    ],
+    ru: [
+      { value: "США", label: "Компания в США" },
+      { value: "Великобритания", label: "Компания в Великобритании" },
+      { value: "Другая страна", label: "Другая страна или консультация по выбору" },
+    ],
+    en: [
+      { value: "USA", label: "Company in the USA" },
+      { value: "United Kingdom", label: "Company in the United Kingdom" },
+      { value: "Other country", label: "Another country or country-selection advice" },
+    ],
+  },
+  "international-payments": {
+    az: [
+      { value: "Stripe", label: "Stripe" },
+      { value: "PayPal", label: "PayPal" },
+      { value: "Digər sistem", label: "Digər ödəniş sistemi" },
+      { value: "Məsləhət lazımdır", label: "Biznesimə uyğun həlli seçmək istəyirəm" },
+    ],
+    ru: [
+      { value: "Stripe", label: "Stripe" },
+      { value: "PayPal", label: "PayPal" },
+      { value: "Другая система", label: "Другая платёжная система" },
+      { value: "Нужна консультация", label: "Хочу подобрать решение для бизнеса" },
+    ],
+    en: [
+      { value: "Stripe", label: "Stripe" },
+      { value: "PayPal", label: "PayPal" },
+      { value: "Other system", label: "Another payment system" },
+      { value: "Consultation needed", label: "I want the right solution for my business" },
+    ],
+  },
+};
+
+const copy = {
   az: {
-    step1Title: "Gəlin sizi daha yaxından tanıyaq",
-    step1Subtitle: "Sizə ən uyğun həlli təklif etmək üçün 4 qısa suala cavab verin",
-    step2Title: "İndi əsas məsələyə keçək",
-    step2Subtitle: "Komissiyalar sizə nə qədər təsir edir?",
-    step3Title: "Sizə uyğun həlli hazırlayaq",
-    step3Subtitle: "Məlumatlarınızı qeyd edin, biz sizinlə əlaqə saxlayaq",
-    stepLabel: "Addım",
-    next: "Növbəti",
-    back: "Geri",
-    submitLead: "Müraciət et",
-    successTitle: "Müraciətiniz qeydə alındı",
-    successText: "Qısa zamanda sizinlə əlaqə saxlayacağıq.",
-    submitErrorText: "Göndəriş alınmadı. Zəhmət olmasa bir daha cəhd edin.",
-    problemBanner: "Siz ildə təxminən itirirsiniz:",
-    q1: "Hansı sahədə fəaliyyət göstərirsiniz?",
-    q1Options: [
-      { label: "E-commerce (online mağaza)", value: "ecom" },
-      { label: "Marketinq / Reklam agentliyi", value: "agency" },
-      { label: "Freelancer (SMM, dizayn, proqramlaşdırma və s.)", value: "freelancer" },
-      { label: "Şirkət / Biznes sahibi", value: "business" },
-      { label: "Digər", value: "other" },
+    titles: ["Sizə hansı xidmət lazımdır?", "Ehtiyacınızı dəqiqləşdirək", "Əlaqə məlumatlarınız"],
+    subtitles: [
+      "Maraqlandığınız xidməti seçin — müraciətiniz birbaşa uyğun istiqamət üzrə qeydə alınacaq.",
+      "Bu məlumatlar komandamızın sizə daha dəqiq həll təklif etməsinə kömək edəcək.",
+      "Müraciəti tamamlayın, komandamız qısa zamanda sizinlə əlaqə saxlasın.",
     ],
-    q3: "Aylıq reklam büdcəniz nə qədərdir? (USD)",
-    q3Options: [
-      { label: "0 – 500 USD", value: "0-500" },
-      { label: "500 – 2000 USD", value: "500-2000" },
-      { label: "2000 – 5000 USD", value: "2000-5000" },
-      { label: "5000+ USD", value: "5000+" },
-    ],
-    q5: "Təxminən aylıq nə qədər komissiya ödəyirsiniz? (USD)",
-    q5Options: [
-      { label: "50 – 200 USD", value: "50-200" },
-      { label: "200 – 500 USD", value: "200-500" },
-      { label: "500+ USD", value: "500+" },
-      { label: "Bilmirəm, amma hiss edirəm ki, çoxdur", value: "dont-know" },
-    ],
-    q6: "Əgər bu xərcləri azaltsanız, nə edərdiniz?",
-    q6Options: [
-      { label: "Daha çox reklam verərdim", value: "more-ads" },
-      { label: "Yeni məhsul / xidmət əlavə edərdim", value: "new-product" },
-      { label: "Biznesimi böyüdərdim", value: "grow" },
-      { label: "Sadəcə qənaət edərdim", value: "save" },
-    ],
-    q7: "Adınız",
-    q7Placeholder: "Adınızı daxil edin",
-    q8: "Telefon nömrəniz",
-    q8Placeholder: "+994 XX XXX XX XX",
-    q9: "Hansı üsulla əlaqə saxlayaq?",
-    q9Options: [
-      { label: "Zəng", value: "call" },
-      { label: "WhatsApp", value: "whatsapp" },
-      { label: "Telegram", value: "telegram" },
-    ],
-    submitLeadText: "Müraciətinizi göndərin və komissiyalara illik itkini azaldın",
+    step: "Addım", next: "Növbəti", back: "Geri", submit: "Müraciəti göndər",
+    package: "Hansı paket və ya istiqamət sizi maraqlandırır?",
+    status: "Hazırda şirkətiniz varmı?", timeline: "Nə vaxt başlamağı planlaşdırırsınız?",
+    details: "Əlavə qeydiniz", detailsPlaceholder: "Biznesiniz və ehtiyacınız haqqında qısa məlumat...",
+    name: "Adınız", email: "E-poçt ünvanınız", emailPlaceholder: "adiniz@example.com",
+    emailError: "Düzgün e-poçt ünvanı daxil edin (məsələn: adiniz@example.com).",
+    phone: "Telefon nömrəniz", contact: "Sizinlə necə əlaqə saxlayaq?",
+    directTitle: "üçün müraciət", directSubtitle: "Şəxsi məlumatlarınızı qeyd edin, komandamız sizinlə əlaqə saxlasın.",
+    success: "Müraciətiniz qeydə alındı", successText: "Seçdiyiniz xidmət üzrə qısa zamanda sizinlə əlaqə saxlayacağıq.",
+    error: "Göndəriş alınmadı. Zəhmət olmasa bir daha cəhd edin.",
+    statuses: ["Şirkətim var", "Şirkətim yoxdur", "Şəxsi istifadə üçündür"],
+    timelines: ["Mümkün qədər tez", "1 ay ərzində", "Hələ araşdırıram"],
   },
   ru: {
-    step1Title: "Давайте познакомимся ближе",
-    step1Subtitle: "Ответьте на 4 коротких вопроса, чтобы мы предложили оптимальное решение",
-    step2Title: "Теперь к основной задаче",
-    step2Subtitle: "Насколько комиссии влияют на ваш бизнес?",
-    step3Title: "Подготовим решение под вас",
-    step3Subtitle: "Оставьте контакты, и мы свяжемся с вами",
-    stepLabel: "Шаг",
-    next: "Далее",
-    back: "Назад",
-    submitLead: "Оставить заявку",
-    successTitle: "Заявка отправлена",
-    successText: "Мы свяжемся с вами в ближайшее время.",
-    submitErrorText: "Не удалось отправить заявку. Попробуйте ещё раз.",
-    problemBanner: "Ваши потери в год составляют примерно:",
-    q1: "В какой сфере вы работаете?",
-    q1Options: [
-      { label: "E-commerce (онлайн-магазин)", value: "ecom" },
-      { label: "Маркетинг / Рекламное агентство", value: "agency" },
-      { label: "Фриланс (SMM, дизайн, разработка и т.д.)", value: "freelancer" },
-      { label: "Компания / Владелец бизнеса", value: "business" },
-      { label: "Другое", value: "other" },
+    titles: ["Какая услуга вам нужна?", "Уточним вашу задачу", "Ваши контакты"],
+    subtitles: [
+      "Выберите услугу — заявка сразу попадёт к нужному направлению.",
+      "Эти данные помогут команде предложить более точное решение.",
+      "Завершите заявку, и мы свяжемся с вами в ближайшее время.",
     ],
-    q3: "Какой у вас месячный рекламный бюджет? (USD)",
-    q3Options: [
-      { label: "0 – 500 USD", value: "0-500" },
-      { label: "500 – 2000 USD", value: "500-2000" },
-      { label: "2000 – 5000 USD", value: "2000-5000" },
-      { label: "5000+ USD", value: "5000+" },
-    ],
-    q5: "Сколько примерно в месяц уходит на комиссии? (USD)",
-    q5Options: [
-      { label: "50 – 200 USD", value: "50-200" },
-      { label: "200 – 500 USD", value: "200-500" },
-      { label: "500+ USD", value: "500+" },
-      { label: "Не знаю, но чувствую что много", value: "dont-know" },
-    ],
-    q6: "Что сделаете, если снизите эти расходы?",
-    q6Options: [
-      { label: "Запущу больше рекламы", value: "more-ads" },
-      { label: "Добавлю новый продукт / услугу", value: "new-product" },
-      { label: "Масштабирую бизнес", value: "grow" },
-      { label: "Просто буду экономить", value: "save" },
-    ],
-    q7: "Ваше имя",
-    q7Placeholder: "Введите имя",
-    q8: "Ваш номер телефона",
-    q8Placeholder: "+994 XX XXX XX XX",
-    q9: "Как с вами связаться?",
-    q9Options: [
-      { label: "Звонок", value: "call" },
-      { label: "WhatsApp", value: "whatsapp" },
-      { label: "Телеграм", value: "telegram" },
-    ],
-    submitLeadText: "Оставьте заявку и сократите годовые потери на комиссиях",
+    step: "Шаг", next: "Далее", back: "Назад", submit: "Отправить заявку",
+    package: "Какой пакет или вариант вас интересует?",
+    status: "У вас уже есть компания?", timeline: "Когда планируете начать?",
+    details: "Дополнительный комментарий", detailsPlaceholder: "Кратко опишите бизнес и задачу...",
+    name: "Ваше имя", email: "Электронная почта", emailPlaceholder: "name@example.com",
+    emailError: "Введите корректный адрес электронной почты (например: name@example.com).",
+    phone: "Номер телефона", contact: "Как с вами связаться?",
+    directTitle: "— заявка", directSubtitle: "Оставьте контактные данные, и наша команда свяжется с вами.",
+    success: "Заявка принята", successText: "Мы скоро свяжемся с вами по выбранной услуге.",
+    error: "Не удалось отправить заявку. Попробуйте ещё раз.",
+    statuses: ["Компания есть", "Компании нет", "Для личного использования"],
+    timelines: ["Как можно скорее", "В течение месяца", "Пока изучаю варианты"],
   },
   en: {
-    step1Title: "Let us get to know you",
-    step1Subtitle: "Answer 4 short questions so we can suggest the best-fit solution",
-    step2Title: "Now let us address the core issue",
-    step2Subtitle: "How much do commissions affect your business?",
-    step3Title: "Let us prepare your best-fit solution",
-    step3Subtitle: "Leave your details and we will contact you",
-    stepLabel: "Step",
-    next: "Next",
-    back: "Back",
-    submitLead: "Apply now",
-    successTitle: "Your request has been sent",
-    successText: "Our team will contact you shortly.",
-    submitErrorText: "Request was not sent. Please try again.",
-    problemBanner: "Your estimated yearly loss is around:",
-    q1: "What area do you work in?",
-    q1Options: [
-      { label: "E-commerce (online store)", value: "ecom" },
-      { label: "Marketing / Advertising agency", value: "agency" },
-      { label: "Freelancer (SMM, design, development, etc.)", value: "freelancer" },
-      { label: "Company / Business owner", value: "business" },
-      { label: "Other", value: "other" },
+    titles: ["Which service do you need?", "Let’s clarify your needs", "Your contact details"],
+    subtitles: [
+      "Choose a service and your request will be routed to the right specialist.",
+      "This information helps our team recommend a more accurate solution.",
+      "Complete the request and our team will contact you shortly.",
     ],
-    q3: "What is your monthly ad budget? (USD)",
-    q3Options: [
-      { label: "0 – 500 USD", value: "0-500" },
-      { label: "500 – 2000 USD", value: "500-2000" },
-      { label: "2000 – 5000 USD", value: "2000-5000" },
-      { label: "5000+ USD", value: "5000+" },
-    ],
-    q5: "How much do you roughly pay in monthly commissions? (USD)",
-    q5Options: [
-      { label: "50 – 200 USD", value: "50-200" },
-      { label: "200 – 500 USD", value: "200-500" },
-      { label: "500+ USD", value: "500+" },
-      { label: "Not sure, but it feels high", value: "dont-know" },
-    ],
-    q6: "If you reduced these costs, what would you do?",
-    q6Options: [
-      { label: "Run more ads", value: "more-ads" },
-      { label: "Add a new product / service", value: "new-product" },
-      { label: "Scale my business", value: "grow" },
-      { label: "Just save the difference", value: "save" },
-    ],
-    q7: "Your name",
-    q7Placeholder: "Enter your name",
-    q8: "Your phone number",
-    q8Placeholder: "+994 XX XXX XX XX",
-    q9: "How should we contact you?",
-    q9Options: [
-      { label: "Phone call", value: "call" },
-      { label: "WhatsApp", value: "whatsapp" },
-      { label: "Telegram", value: "telegram" },
-    ],
-    submitLeadText: "Send your request and reduce yearly fee losses",
+    step: "Step", next: "Next", back: "Back", submit: "Send request",
+    package: "Which package or direction interests you?",
+    status: "Do you currently have a company?", timeline: "When do you plan to start?",
+    details: "Additional note", detailsPlaceholder: "Briefly describe your business and needs...",
+    name: "Your name", email: "Email address", emailPlaceholder: "name@example.com",
+    emailError: "Enter a valid email address (for example: name@example.com).",
+    phone: "Phone number", contact: "How should we contact you?",
+    directTitle: "application", directSubtitle: "Leave your contact details and our team will get in touch.",
+    success: "Your request has been received", successText: "We will contact you shortly about your selected service.",
+    error: "The request could not be sent. Please try again.",
+    statuses: ["I have a company", "I do not have a company", "For personal use"],
+    timelines: ["As soon as possible", "Within one month", "I am still researching"],
   },
-};
+} satisfies Record<Locale, Record<string, string | string[]>>;
 
-type Answers = {
-  q1?: string;
-  q3?: string;
-  q5?: string;
-  q6?: string;
-  name: string;
-  phone: string;
-  contact?: string;
-};
+const contactOptions: Choice[] = [
+  { value: "call", label: "Call" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "telegram", label: "Telegram" },
+];
 
-type LeadPayload = {
+function countryFlag(code: CountryCode) {
+  return code
+    .split("")
+    .map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)))
+    .join("");
+}
+
+function CountryPhoneField({
+  locale,
+  countryCode,
+  onCountryChange,
+  localPhone,
+  onPhoneChange,
+  label,
+}: {
   locale: Locale;
-  estimatedLoss: number;
-  contact: {
-    name: string;
-    phone: string;
-    preferredContact: string;
-  };
-  profile: {
-    businessType: string;
-    adBudget: string;
-    commissionAmount: string;
-    growthPlan: string;
-  };
-  qa: Array<{ question: string; answer: string }>;
-  submittedAt: string;
-};
+  countryCode: CountryCode;
+  onCountryChange: (country: CountryCode) => void;
+  localPhone: string;
+  onPhoneChange: (value: string) => void;
+  label: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const displayNames = useMemo(
+    () => new Intl.DisplayNames([locale], { type: "region" }),
+    [locale],
+  );
+  const countries = useMemo(
+    () =>
+      getCountries()
+        .map((code) => ({
+          code,
+          name: displayNames.of(code) ?? code,
+          dial: `+${getCountryCallingCode(code)}`,
+        }))
+        .sort((a, b) =>
+          a.code === "AZ" ? -1 : b.code === "AZ" ? 1 : a.name.localeCompare(b.name, locale),
+        ),
+    [displayNames, locale],
+  );
+  const selected = countries.find((country) => country.code === countryCode) ?? countries[0];
+  const normalizedSearch = search.trim().toLocaleLowerCase(locale);
+  const filteredCountries = countries.filter(
+    (country) =>
+      !normalizedSearch ||
+      country.name.toLocaleLowerCase(locale).includes(normalizedSearch) ||
+      country.code.toLocaleLowerCase(locale).includes(normalizedSearch) ||
+      country.dial.includes(normalizedSearch.replace(/\s/g, "")),
+  );
 
-const PHONE_PREFIX = "+994";
+  useEffect(() => {
+    if (!isOpen) return;
+    searchRef.current?.focus();
+    const close = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
 
-const initialAnswers: Answers = {
-  name: "",
-  phone: PHONE_PREFIX,
-};
-
-const USD_TO_AZN = 1.7;
-const COMMISSION_RATE = 0.18;
-
-const budgetEstimateUsd: Record<string, number> = {
-  "0-500": 350,
-  "500-2000": 1250,
-  "2000-5000": 3500,
-  "5000+": 6000,
-};
-
-function calculateLoss(answers: Answers) {
-  const monthlyBudgetUsd = answers.q3 ? budgetEstimateUsd[answers.q3] ?? 350 : 350;
-  const monthlyLossUsd = monthlyBudgetUsd * COMMISSION_RATE;
-  const yearlyLossAzn = monthlyLossUsd * 12 * USD_TO_AZN;
-  return Math.round(yearlyLossAzn);
+  return (
+    <div className="lead-quiz__phone" ref={rootRef}>
+      <div className="country-picker">
+        <button
+          type="button"
+          className="country-picker__trigger"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          onClick={() => {
+            setIsOpen((value) => !value);
+            setSearch("");
+          }}
+        >
+          <span>{countryFlag(selected.code)}</span>
+          <b>{selected.dial}</b>
+          <i aria-hidden="true">⌄</i>
+        </button>
+        {isOpen ? (
+          <div className="country-picker__dropdown">
+            <input
+              ref={searchRef}
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={locale === "az" ? "Ölkə və ya kod axtar..." : locale === "ru" ? "Поиск страны или кода..." : "Search country or code..."}
+              aria-label={locale === "az" ? "Ölkə axtar" : locale === "ru" ? "Поиск страны" : "Search country"}
+            />
+            <div className="country-picker__list" role="listbox">
+              {filteredCountries.map((country) => (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={country.code === countryCode}
+                  key={country.code}
+                  onClick={() => {
+                    onCountryChange(country.code);
+                    setIsOpen(false);
+                    setSearch("");
+                  }}
+                >
+                  <span>{countryFlag(country.code)}</span>
+                  <span>{country.name}</span>
+                  <b>{country.dial}</b>
+                </button>
+              ))}
+              {!filteredCountries.length ? (
+                <p>{locale === "az" ? "Ölkə tapılmadı" : locale === "ru" ? "Страна не найдена" : "No country found"}</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <input
+        type="tel"
+        inputMode="numeric"
+        autoComplete="tel-national"
+        value={localPhone}
+        placeholder={countryCode === "AZ" ? "50 123 45 67" : label}
+        onChange={(event) => onPhoneChange(event.target.value.replace(/[^\d\s()-]/g, ""))}
+        aria-label={label}
+        required
+      />
+    </div>
+  );
 }
 
-function findLabel(options: Choice[], value?: string) {
-  if (!value) return "—";
-  return options.find((item) => item.value === value)?.label ?? value;
-}
-
-function buildPayload(locale: Locale, c: QuizCopy, answers: Answers, estimatedLoss: number): LeadPayload {
-  const q1 = findLabel(c.q1Options, answers.q1);
-  const q3 = findLabel(c.q3Options, answers.q3);
-  const q5 = findLabel(c.q5Options, answers.q5);
-  const q6 = findLabel(c.q6Options, answers.q6);
-  const q9 = findLabel(c.q9Options, answers.contact);
-
-  return {
-    locale,
-    estimatedLoss,
-    contact: {
-      name: answers.name.trim(),
-      phone: answers.phone.trim(),
-      preferredContact: q9,
-    },
-    profile: {
-      businessType: q1,
-      adBudget: q3,
-      commissionAmount: q5,
-      growthPlan: q6,
-    },
-    qa: [
-      { question: c.q1, answer: q1 },
-      { question: c.q3, answer: q3 },
-      { question: c.q5, answer: q5 },
-      { question: c.q6, answer: q6 },
-      { question: c.q7, answer: answers.name.trim() },
-      { question: c.q8, answer: answers.phone.trim() },
-      { question: c.q9, answer: q9 },
-    ],
-    submittedAt: new Date().toISOString(),
-  };
-}
-
-export function LeadQuiz({ locale }: { locale: Locale }) {
-  const c = quizCopy[locale];
-  const [step, setStep] = useState(0);
+export function LeadQuiz({
+  locale,
+  embedded = false,
+  context = {},
+}: {
+  locale: Locale;
+  embedded?: boolean;
+  context?: LeadContext;
+}) {
+  const c = copy[locale];
+  const isDirectPackageLead = Boolean(context.service && context.packageName);
+  const [step, setStep] = useState(isDirectPackageLead ? 2 : 0);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [answers, setAnswers] = useState<Answers>(initialAnswers);
+  const [service, setService] = useState<ServiceKey | "">(context.service ?? "");
+  const [packageName, setPackageName] = useState(context.packageName ?? "");
+  const [businessStatus, setBusinessStatus] = useState("");
+  const [timeline, setTimeline] = useState("");
+  const [details, setDetails] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [countryCode, setCountryCode] = useState<CountryCode>("AZ");
+  const [localPhone, setLocalPhone] = useState("");
+  const [preferredContact, setPreferredContact] = useState("");
 
-  const estimatedLoss = calculateLoss(answers);
-  const phoneDigits = answers.phone.replace(/\D/g, "");
-  const hasPhoneNumber = phoneDigits.length > 3;
+  const selectedService = services[locale].find((item) => item.value === service);
+  const currentTitle = isDirectPackageLead
+    ? locale === "az"
+      ? `${packageName} ${c.directTitle}`
+      : locale === "ru"
+        ? `${packageName} ${c.directTitle}`
+        : `${packageName} ${c.directTitle}`
+    : c.titles[step];
+  const currentSubtitle = isDirectPackageLead ? c.directSubtitle : c.subtitles[step];
+  const canContinue = step === 0 ? Boolean(service) : Boolean(packageName && businessStatus && timeline);
+  const fullPhone = `+${getCountryCallingCode(countryCode)}${localPhone.replace(/\D/g, "").replace(/^0+/, "")}`;
+  const normalizedEmail = email.trim().toLocaleLowerCase();
+  const isEmailValid =
+    normalizedEmail.length <= 254 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail);
+  const canSubmit =
+    name.trim().length >= 2 &&
+    isEmailValid &&
+    fullPhone.replace(/\D/g, "").length >= 10 &&
+    Boolean(preferredContact);
 
-  const canNextFromStep1 = Boolean(answers.q1 && answers.q3);
-  const canNextFromStep2 = Boolean(answers.q5 && answers.q6);
-  const canSubmit = Boolean(answers.name.trim() && hasPhoneNumber && answers.contact);
-
-  const handlePhoneChange = (rawValue: string) => {
-    const digits = rawValue.replace(/\D/g, "");
-    const localDigits = digits.startsWith("994") ? digits.slice(3) : digits;
-    setAnswers((prev) => ({ ...prev, phone: `${PHONE_PREFIX}${localDigits}` }));
-  };
-
-  const goNext = () => {
-    if (step === 0 && !canNextFromStep1) return;
-    if (step === 1 && !canNextFromStep2) return;
-    setStep((prev) => Math.min(prev + 1, 2));
-  };
-
-  const goBack = () => setStep((prev) => Math.max(prev - 1, 0));
-
-  const onSubmit = async (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canSubmit || isSubmitting) return;
-
-    setSubmitError(null);
+    if (!service || !canSubmit || isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    const payload = buildPayload(locale, c, answers, estimatedLoss);
+    const contactLabel =
+      preferredContact === "call"
+        ? locale === "az" ? "Zəng" : locale === "ru" ? "Звонок" : "Call"
+        : preferredContact === "telegram" && locale === "ru" ? "Телеграм" : preferredContact === "telegram" ? "Telegram" : "WhatsApp";
 
     try {
       const response = await fetch("/api/lead", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locale,
+          serviceKey: service,
+          serviceName: selectedService?.label ?? service,
+          packageName,
+          sourcePath: context.sourcePath || window.location.pathname,
+          sourceLabel: context.sourceLabel || "consultation",
+          estimatedLoss: 0,
+          contact: { name: name.trim(), email: normalizedEmail, phone: fullPhone, preferredContact },
+          profile: {
+            serviceKey: service,
+            service: selectedService?.label ?? service,
+            package: packageName,
+            businessStatus,
+            timeline,
+            details,
+            email: normalizedEmail,
+            sourcePath: context.sourcePath || window.location.pathname,
+            sourceLabel: context.sourceLabel || "consultation",
+          },
+          qa: [
+            { question: c.titles[0], answer: selectedService?.label ?? service },
+            { question: c.package, answer: packageName },
+            { question: c.status, answer: businessStatus },
+            { question: c.timeline, answer: timeline },
+            { question: c.details, answer: details || "—" },
+            { question: c.email, answer: normalizedEmail },
+            { question: c.contact, answer: contactLabel },
+          ],
+          submittedAt: new Date().toISOString(),
+        }),
       });
-
-      if (!response.ok) {
-        const errorData = (await response.json().catch(() => null)) as
-          | { error?: string; detail?: string }
-          | null;
-        const backendMessage = errorData?.detail ?? errorData?.error ?? "failed_to_send";
-        throw new Error(backendMessage);
-      }
-
+      if (!response.ok) throw new Error("failed_to_send");
       setSubmitted(true);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      setSubmitError(message ? `${c.submitErrorText} (${message})` : c.submitErrorText);
+    } catch {
+      setSubmitError(c.error as string);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <section className="lead-quiz section" id="muraciet">
+    <section className={`lead-quiz section${embedded ? " lead-quiz--embedded" : ""}`}>
       <div className="container lead-quiz__inner">
         <div className="lead-quiz__head">
-          <p className="tag">
-            {c.stepLabel} {step + 1}/3
-          </p>
-          <h2>{step === 0 ? c.step1Title : step === 1 ? c.step2Title : c.step3Title}</h2>
-          <p className="lead-quiz__sub">
-            {step === 0 ? c.step1Subtitle : step === 1 ? c.step2Subtitle : c.step3Subtitle}
-          </p>
-
-          {step === 2 ? (
-            <p className="lead-quiz__loss">
-              {c.problemBanner} <strong>{estimatedLoss} AZN</strong>
-            </p>
-          ) : null}
+          <p className="tag">{c.step} {isDirectPackageLead ? "1/1" : `${step + 1}/3`}</p>
+          <h2>{currentTitle}</h2>
+          <p className="lead-quiz__sub">{currentSubtitle}</p>
         </div>
-
-        <form className="lead-quiz__form" onSubmit={onSubmit}>
+        <form className="lead-quiz__form" onSubmit={submit}>
           {submitted ? (
-            <div className="lead-quiz__success">
-              <h3>{c.successTitle}</h3>
-              <p>{c.successText}</p>
-            </div>
+            <div className="lead-quiz__success"><h3>{c.success}</h3><p>{c.successText}</p></div>
           ) : null}
 
           {!submitted && step === 0 ? (
-            <div className="lead-quiz__step">
-              <fieldset>
-                <legend>{c.q1}</legend>
-                {c.q1Options.map((option) => (
-                  <label key={option.value} className="lead-quiz__option">
-                    <input
-                      type="radio"
-                      name="q1"
-                      value={option.value}
-                      checked={answers.q1 === option.value}
-                      onChange={() => setAnswers((prev) => ({ ...prev, q1: option.value }))}
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </fieldset>
-
-              <fieldset>
-                <legend>{c.q3}</legend>
-                {c.q3Options.map((option) => (
-                  <label key={option.value} className="lead-quiz__option">
-                    <input
-                      type="radio"
-                      name="q3"
-                      value={option.value}
-                      checked={answers.q3 === option.value}
-                      onChange={() => setAnswers((prev) => ({ ...prev, q3: option.value }))}
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </fieldset>
-            </div>
+            <div className="lead-quiz__step"><fieldset><legend>{c.titles[0]}</legend>
+              {services[locale].map((option) => (
+                <label key={option.value} className="lead-quiz__option">
+                  <input type="radio" checked={service === option.value} onChange={() => {
+                    setService(option.value as ServiceKey);
+                    if (option.value !== context.service) setPackageName("");
+                  }} />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </fieldset></div>
           ) : null}
 
-          {!submitted && step === 1 ? (
+          {!submitted && step === 1 && service ? (
             <div className="lead-quiz__step">
-              <fieldset>
-                <legend>{c.q5}</legend>
-                {c.q5Options.map((option) => (
+              <fieldset><legend>{c.package}</legend>
+                {packages[service][locale].map((option) => (
                   <label key={option.value} className="lead-quiz__option">
-                    <input
-                      type="radio"
-                      name="q5"
-                      value={option.value}
-                      checked={answers.q5 === option.value}
-                      onChange={() => setAnswers((prev) => ({ ...prev, q5: option.value }))}
-                    />
+                    <input type="radio" checked={packageName === option.value} onChange={() => setPackageName(option.value)} />
                     <span>{option.label}</span>
                   </label>
                 ))}
               </fieldset>
-
-              <fieldset>
-                <legend>{c.q6}</legend>
-                {c.q6Options.map((option) => (
-                  <label key={option.value} className="lead-quiz__option">
-                    <input
-                      type="radio"
-                      name="q6"
-                      value={option.value}
-                      checked={answers.q6 === option.value}
-                      onChange={() => setAnswers((prev) => ({ ...prev, q6: option.value }))}
-                    />
-                    <span>{option.label}</span>
+              <fieldset><legend>{c.status}</legend>
+                {(c.statuses as string[]).map((option) => (
+                  <label key={option} className="lead-quiz__option">
+                    <input type="radio" checked={businessStatus === option} onChange={() => setBusinessStatus(option)} />
+                    <span>{option}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <fieldset><legend>{c.timeline}</legend>
+                {(c.timelines as string[]).map((option) => (
+                  <label key={option} className="lead-quiz__option">
+                    <input type="radio" checked={timeline === option} onChange={() => setTimeline(option)} />
+                    <span>{option}</span>
                   </label>
                 ))}
               </fieldset>
@@ -468,86 +488,68 @@ export function LeadQuiz({ locale }: { locale: Locale }) {
 
           {!submitted && step === 2 ? (
             <div className="lead-quiz__step">
+              <label className="lead-quiz__input"><span>{c.name}</span>
+                <input value={name} maxLength={100} autoComplete="name" onChange={(event) => setName(event.target.value)} required />
+              </label>
               <label className="lead-quiz__input">
-                <span>{c.q7}</span>
+                <span>{c.email}</span>
                 <input
-                  type="text"
-                  placeholder={c.q7Placeholder}
-                  value={answers.name}
-                  onChange={(event) =>
-                    setAnswers((prev) => ({ ...prev, name: event.target.value }))
-                  }
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  maxLength={254}
+                  placeholder={c.emailPlaceholder as string}
+                  aria-invalid={emailTouched && !isEmailValid}
+                  aria-describedby="lead-email-error"
+                  onBlur={() => setEmailTouched(true)}
+                  onChange={(event) => setEmail(event.target.value)}
                   required
                 />
+                {emailTouched && !isEmailValid ? (
+                  <small className="lead-quiz__field-error" id="lead-email-error">
+                    {c.emailError}
+                  </small>
+                ) : null}
               </label>
-
-              <label className="lead-quiz__input">
-                <span>{c.q8}</span>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  placeholder={c.q8Placeholder.replace("+994 ", "")}
-                  value={answers.phone}
-                  onChange={(event) => handlePhoneChange(event.target.value)}
-                  required
+              <label className="lead-quiz__input"><span>{c.phone}</span>
+                <CountryPhoneField
+                  locale={locale}
+                  countryCode={countryCode}
+                  onCountryChange={setCountryCode}
+                  localPhone={localPhone}
+                  onPhoneChange={setLocalPhone}
+                  label={c.phone as string}
                 />
               </label>
-
-              <fieldset>
-                <legend>{c.q9}</legend>
-                <div className="lead-quiz__contact-grid">
-                  {c.q9Options.map((option) => (
-                    <label key={option.value} className="lead-quiz__option">
-                      <input
-                        type="radio"
-                        name="q9"
-                        value={option.value}
-                        checked={answers.contact === option.value}
-                        onChange={() =>
-                          setAnswers((prev) => ({ ...prev, contact: option.value }))
-                        }
-                      />
-                      <span>{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <fieldset><legend>{c.contact}</legend><div className="lead-quiz__contact-grid">
+                {contactOptions.map((option) => (
+                  <label key={option.value} className="lead-quiz__option">
+                    <input type="radio" checked={preferredContact === option.value} onChange={() => setPreferredContact(option.value)} />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div></fieldset>
+              <label className="lead-quiz__input"><span>{c.details}</span>
+                <textarea
+                  rows={3}
+                  maxLength={500}
+                  value={details}
+                  placeholder={c.detailsPlaceholder as string}
+                  onChange={(event) => setDetails(event.target.value)}
+                />
+              </label>
             </div>
           ) : null}
 
           {!submitted && submitError ? <p className="lead-quiz__error">{submitError}</p> : null}
-
           {!submitted ? (
             <div className="lead-quiz__actions">
-              {step > 0 ? (
-                <button type="button" className="btn btn--ghost" onClick={goBack}>
-                  {c.back}
-                </button>
-              ) : (
-                <span />
-              )}
-
+              {step > 0 && !isDirectPackageLead ? <button type="button" className="btn btn--ghost" onClick={() => setStep(step - 1)}>{c.back}</button> : <span />}
               {step < 2 ? (
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  onClick={goNext}
-                  disabled={
-                    isSubmitting ||
-                    (step === 0 && !canNextFromStep1) ||
-                    (step === 1 && !canNextFromStep2)
-                  }
-                >
-                  {c.next}
-                </button>
+                <button type="button" className="btn btn--primary" disabled={!canContinue} onClick={() => canContinue && setStep(step + 1)}>{c.next}</button>
               ) : (
-                <div className="lead-quiz__submit-wrap">
-                  <p>{c.submitLeadText}</p>
-                  <button type="submit" className="btn btn--primary" disabled={!canSubmit || isSubmitting}>
-                    {isSubmitting ? "Sending..." : c.submitLead}
-                  </button>
-                </div>
+                <button type="submit" className="btn btn--primary" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "..." : c.submit}</button>
               )}
             </div>
           ) : null}

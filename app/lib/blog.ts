@@ -18,7 +18,7 @@ export const blogUi: Record<Locale, BlogUiCopy> = {
   az: {
     badge: "Sapiens Pay Blog",
     title: "Ödənişlər və beynəlxalq satışlar üzrə bloq",
-    lead: "Komissiyalar, reklam ödənişləri və e-commerce infrastrukturu üzrə praktik materiallar.",
+    lead: "Xarici bank hesabları, Shopify Payments, şirkət qeydiyyatı və beynəlxalq ödənişlər üzrə praktik materiallar.",
     allPosts: "Bütün yazılar",
     backToSite: "Ana səhifə",
     blogLabel: "Bloq",
@@ -26,13 +26,12 @@ export const blogUi: Record<Locale, BlogUiCopy> = {
     readTime: "dəqiqə oxu",
     readTimeShort: "dəq",
     noPosts: "Bu dil üçün yazı tapılmadı.",
-    notConfigured:
-      "Sanity hələ qoşulmayıb. `NEXT_PUBLIC_SANITY_PROJECT_ID` və `NEXT_PUBLIC_SANITY_DATASET` əlavə edin.",
+    notConfigured: "Bloq sistemi hələ aktiv edilməyib.",
   },
   ru: {
     badge: "Sapiens Pay Blog",
     title: "Блог о платежах и международных продажах",
-    lead: "Практические материалы о комиссиях, рекламных платежах и инфраструктуре e-commerce.",
+    lead: "Практические материалы о зарубежных счетах, Shopify Payments, регистрации компаний и международных платежах.",
     allPosts: "Все статьи",
     backToSite: "На главную",
     blogLabel: "Блог",
@@ -40,13 +39,12 @@ export const blogUi: Record<Locale, BlogUiCopy> = {
     readTime: "мин чтения",
     readTimeShort: "мин",
     noPosts: "Для этого языка пока нет статей.",
-    notConfigured:
-      "Sanity пока не настроен. Добавьте `NEXT_PUBLIC_SANITY_PROJECT_ID` и `NEXT_PUBLIC_SANITY_DATASET`.",
+    notConfigured: "Система блога пока не активирована.",
   },
   en: {
     badge: "Sapiens Pay Blog",
     title: "Blog about payments and global e-commerce",
-    lead: "Practical guides on fees, ad payments, and checkout infrastructure.",
+    lead: "Practical guides to foreign accounts, Shopify Payments, company formation, and international payments.",
     allPosts: "All posts",
     backToSite: "Homepage",
     blogLabel: "Blog",
@@ -54,8 +52,7 @@ export const blogUi: Record<Locale, BlogUiCopy> = {
     readTime: "min read",
     readTimeShort: "min",
     noPosts: "No posts available for this language yet.",
-    notConfigured:
-      "Sanity is not configured yet. Add `NEXT_PUBLIC_SANITY_PROJECT_ID` and `NEXT_PUBLIC_SANITY_DATASET`.",
+    notConfigured: "The blog system has not been activated yet.",
   },
 };
 
