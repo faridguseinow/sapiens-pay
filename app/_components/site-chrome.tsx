@@ -92,14 +92,20 @@ export function SiteFooter({ locale }: { locale: Locale }) {
   );
 }
 
-export function MobileFooterNav({ locale }: { locale: Locale }) {
+export function MobileFooterNav({
+  locale,
+  onHomePage = false,
+}: {
+  locale: Locale;
+  onHomePage?: boolean;
+}) {
   const t = dict[locale];
 
   return (
     <nav className="mobile-footer-nav" aria-label="Mobile navigation">
-      <a href="#home">{t.mobileHome}</a>
+      <a href={onHomePage ? "#home" : `/${locale}#home`}>{t.mobileHome}</a>
       <a href="tel:+994103732036">{t.mobileCall}</a>
-      <a href="#muraciet">{t.mobileLead}</a>
+      <a href={onHomePage ? "#consultation" : `/${locale}#consultation`}>{t.mobileLead}</a>
     </nav>
   );
 }

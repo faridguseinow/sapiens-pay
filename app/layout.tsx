@@ -6,12 +6,32 @@ import "@fontsource/poppins/600.css";
 import "@fontsource/poppins/700.css";
 import "./globals.scss";
 
-const GA_MEASUREMENT_ID = "G-NPNDGYZQ7E";
+const GA_MEASUREMENT_ID =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-NPNDGYZQ7E";
 
 export const metadata: Metadata = {
-  title: "Sapiens Pay",
+  metadataBase: new URL("https://sapiens-pay.com"),
+  title: {
+    default: "Sapiens Pay — Beynəlxalq biznes həlləri",
+    template: "%s | Sapiens Pay",
+  },
   description:
-    "Meta, Google Ads və TikTok reklam ödənişləri üçün xarici bank kartlarının rəsmi açılışı. Daha az xərc, daha çox nəticə.",
+    "Xarici bank hesabları, Shopify Payments, xarici şirkət qeydiyyatı və beynəlxalq ödəniş həlləri.",
+  applicationName: "Sapiens Pay",
+  openGraph: {
+    type: "website",
+    siteName: "Sapiens Pay",
+    title: "Sapiens Pay — Beynəlxalq biznes həlləri",
+    description:
+      "Xarici bank hesabları, Shopify Payments və xarici şirkət qeydiyyatı üçün praktik dəstək.",
+    url: "https://sapiens-pay.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sapiens Pay — Beynəlxalq biznes həlləri",
+    description:
+      "Xarici bank hesabları, Shopify Payments və xarici şirkət qeydiyyatı üçün praktik dəstək.",
+  },
 };
 
 export default function RootLayout({
@@ -21,9 +41,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="az">
-      <head>
-        <script src="https://app.inlyne.ai/scripts/preview.js" async></script>
-      </head>
       <body>
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}

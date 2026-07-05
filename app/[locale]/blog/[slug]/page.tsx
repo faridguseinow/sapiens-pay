@@ -1,59 +1,74 @@
-import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PortableText } from "@portabletext/react";
-import type { PortableTextBlock } from "@portabletext/types";
+import {
+  ArticleContent,
+  getArticleHeadings,
+  toAnchorId,
+} from "@/app/_components/article-content";
 import { MobileFooterNav, SiteFooter, SiteHeader } from "@/app/_components/site-chrome";
 import { blogUi, formatPostDate } from "@/app/lib/blog";
 import { dict, isLocale, locales, type Locale } from "@/app/lib/i18n";
-import { isSanityConfigured, sanityClient } from "@/lib/sanity.client";
-import { urlForImage } from "@/lib/sanity.image";
-import { postBySlugQuery, postRoutesQuery } from "@/lib/sanity.queries";
-
-type Post = {
-  _id: string;
-  title: string;
-  slug?: string;
-  excerpt?: string;
-  publishedAt?: string;
-  content?: PortableTextBlock[];
-  coverImage?: unknown;
-  coverImageUrl?: string;
-  _translations?: Array<{
-    language?: string;
-    slug?: string;
-    title?: string;
-  }>;
-};
-
-type BlockChild = {
-  _type?: string;
-  text?: string;
-};
-
-type HeadingBlock = PortableTextBlock & {
-  style?: string;
-  children?: BlockChild[];
-};
+import {
+  getPostTranslations,
+  getPublishedPost,
+  getPublishedPostRoutes,
+} from "@/lib/posts";
 
 export const revalidate = 60;
 
-const toAnchorId = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    .trim()
-    .replace(/\s+/g, "-");
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale, slug } = await params;
+  if (!isLocale(locale)) return {};
+  const post = await getPublishedPost(locale, slug);
+  if (!post) return {};
+  const title = post.seo_title || post.title;
+  const description = post.seo_description || post.excerpt || undefined;
+  const translations = await getPostTranslations(post.translation_group_id);
+  const languageTags: Record<Locale, string> = {
+    az: "az-AZ",
+    ru: "ru-RU",
+    en: "en-US",
+  };
+  const languages = Object.fromEntries(
+    translations
+      .filter((item): item is typeof item & { locale: Locale } => isLocale(item.locale))
+      .map((item) => [languageTags[item.locale], `/${item.locale}/blog/${item.slug}`]),
+  );
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/${locale}/blog/${slug}`,
+      languages,
+    },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `/${locale}/blog/${slug}`,
+      siteName: "Sapiens Pay",
+      publishedTime: post.published_at ?? undefined,
+      images: post.cover_image_url ? [{ url: post.cover_image_url }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: post.cover_image_url ? [post.cover_image_url] : undefined,
+    },
+  };
+}
 
 export async function generateStaticParams() {
-  if (!isSanityConfigured) {
-    return [];
-  }
-
-  const routes = await sanityClient.fetch<Array<{ locale?: string; slug?: string }>>(postRoutesQuery, { locales });
+  const routes = await getPublishedPostRoutes();
   return routes
-    .filter((route): route is { locale: Locale; slug: string } => {
+    .filter((route): route is typeof route & { locale: Locale } => {
       return typeof route.slug === "string" && typeof route.locale === "string" && isLocale(route.locale);
     })
     .map(({ locale, slug }) => ({ locale, slug }));
@@ -72,11 +87,7 @@ export default async function LocalizedBlogPostPage({
 
   const locale: Locale = localeParam;
 
-  if (!isSanityConfigured) {
-    notFound();
-  }
-
-  const post = await sanityClient.fetch<Post | null>(postBySlugQuery, { slug, locale });
+  const post = await getPublishedPost(locale, slug);
 
   if (!post) {
     notFound();
@@ -85,66 +96,80 @@ export default async function LocalizedBlogPostPage({
   const ui = blogUi[locale];
   const t = dict[locale];
 
-  const headingBlocks = (post.content ?? [])
-    .filter((block): block is HeadingBlock => {
-      if (!block || typeof block !== "object") {
-        return false;
-      }
-
-      const style = (block as HeadingBlock).style;
-      return style === "h2" || style === "h3";
-    })
-    .map((block) => {
-      return (block.children ?? [])
-        .filter((child) => child?._type === "span" && typeof child.text === "string")
-        .map((child) => child.text)
-        .join(" ")
-        .trim();
-    })
-    .filter(Boolean);
-
-  const wordCount = (post.content ?? [])
-    .flatMap((block) => (block as HeadingBlock).children ?? [])
-    .map((child) => child?.text ?? "")
-    .join(" ")
+  const headingBlocks = getArticleHeadings(post.content);
+  const wordCount = post.content
     .split(/\s+/)
     .filter(Boolean).length;
 
   const readMinutes = Math.max(1, Math.ceil(wordCount / 180));
 
-  const imageUrl = post.coverImage
-    ? urlForImage(post.coverImage).width(1400).height(860).url()
-    : post.coverImageUrl ?? null;
-  const publishedDate = formatPostDate(locale, post.publishedAt);
+  const imageUrl = post.cover_image_url;
+  const publishedDate = formatPostDate(locale, post.published_at ?? undefined);
+  const translations = await getPostTranslations(post.translation_group_id);
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.seo_description || post.excerpt || undefined,
+    image: post.cover_image_url ? [post.cover_image_url] : undefined,
+    datePublished: post.published_at,
+    dateModified: post.updated_at,
+    inLanguage: locale,
+    articleSection: post.category ?? undefined,
+    author: { "@type": "Organization", name: "Sapiens Pay", url: "https://sapiens-pay.com" },
+    publisher: { "@type": "Organization", name: "Sapiens Pay", url: "https://sapiens-pay.com" },
+    mainEntityOfPage: `https://sapiens-pay.com/${locale}/blog/${slug}`,
+  };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: t.headerHome,
+        item: `https://sapiens-pay.com/${locale}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: ui.blogLabel,
+        item: `https://sapiens-pay.com/${locale}/blog`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: post.title,
+        item: `https://sapiens-pay.com/${locale}/blog/${slug}`,
+      },
+    ],
+  };
   const localeLinks = Object.fromEntries(
     locales.map((item) => {
       if (item === locale) {
         return [item, `/${locale}/blog/${slug}`];
       }
 
-      const translation = (post._translations ?? []).find(
-        (entry) => entry.language === item && typeof entry.slug === "string",
-      );
+      const translation = translations.find((entry) => entry.locale === item);
 
       return [item, translation ? `/${item}/blog/${translation.slug}` : null];
     }),
   ) as Partial<Record<Locale, string | null>>;
 
-  const portableTextComponents = {
-    block: {
-      h2: ({ children }: { children?: ReactNode }) => {
-        const text = String(children ?? "");
-        return <h2 id={toAnchorId(text)}>{children}</h2>;
-      },
-      h3: ({ children }: { children?: ReactNode }) => {
-        const text = String(children ?? "");
-        return <h3 id={toAnchorId(text)}>{children}</h3>;
-      },
-    },
-  };
-
   return (
     <main className="blog-shell blog-post-page">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <SiteHeader
         locale={locale}
         currentPath={`/blog/${slug}`}
@@ -178,12 +203,12 @@ export default async function LocalizedBlogPostPage({
 
               {imageUrl ? (
                 <div className="blog-post__cover">
-                  <Image src={imageUrl} alt={post.title} width={1400} height={860} />
+                  <Image src={imageUrl} alt={post.title} width={1400} height={860} unoptimized />
                 </div>
               ) : null}
 
               <div className="blog-post__content">
-                {post.content ? <PortableText value={post.content} components={portableTextComponents} /> : null}
+                <ArticleContent content={post.content} />
               </div>
             </article>
 

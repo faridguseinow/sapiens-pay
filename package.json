@@ -6,31 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "sanity:posts:audit": "node scripts/fix-sanity-posts.mjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.2.7",
-    "@portabletext/react": "^6.0.3",
-    "@sanity/client": "^7.21.0",
-    "@sanity/document-internationalization": "^6.2.8",
-    "@sanity/image-url": "^2.1.1",
-    "@types/nodemailer": "^8.0.0",
-    "googleapis": "^144.0.0",
-    "next": "16.2.1",
-    "next-sanity": "^12.2.2",
-    "nodemailer": "^8.0.5",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.0",
+    "libphonenumber-js": "^1.13.8",
+    "next": "^16.2.10",
     "openai": "^6.44.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "sanity": "^5.21.0"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.1",
+    "eslint-config-next": "^16.2.10",
     "sass": "^1.93.2",
     "typescript": "^5"
   }
