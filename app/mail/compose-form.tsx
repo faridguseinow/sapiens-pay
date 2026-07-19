@@ -7,7 +7,14 @@ export function ComposeForm({
   initial = {},
   onSent,
 }: {
-  initial?: { id?: string; to?: string; subject?: string; message?: string };
+  initial?: {
+    id?: string;
+    to?: string;
+    cc?: string;
+    bcc?: string;
+    subject?: string;
+    message?: string;
+  };
   onSent?: () => void;
 }) {
   const [state, action, pending] = useActionState(sendMail, undefined);
@@ -30,6 +37,14 @@ export function ComposeForm({
         body: JSON.stringify({
           id: draftId,
           recipients: [String(data.get("to") || "")].filter(Boolean),
+          cc: String(data.get("cc") || "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean),
+          bcc: String(data.get("bcc") || "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean),
           subject: String(data.get("subject") || ""),
           body: String(data.get("message") || ""),
         }),
@@ -64,11 +79,21 @@ export function ComposeForm({
         <summary>CC / BCC</summary>
         <label>
           CC
-          <input name="cc" type="text" placeholder="cc@example.com" />
+          <input
+            name="cc"
+            type="text"
+            defaultValue={initial.cc}
+            placeholder="cc@example.com"
+          />
         </label>
         <label>
           BCC
-          <input name="bcc" type="text" placeholder="bcc@example.com" />
+          <input
+            name="bcc"
+            type="text"
+            defaultValue={initial.bcc}
+            placeholder="bcc@example.com"
+          />
         </label>
       </details>
       <label>

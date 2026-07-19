@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ComposeForm } from "./compose-form";
 import { mailLogout } from "./actions";
 
@@ -37,7 +37,8 @@ type Detail = {
     download_url: string | null;
   }>;
 };
-type Folder = "inbox" | "starred" | "sent" | "drafts" | "archive" | "trash";
+type Folder =
+  "inbox" | "starred" | "sent" | "drafts" | "archive" | "spam" | "trash";
 
 const icons = {
   inbox: "▣",
@@ -45,6 +46,7 @@ const icons = {
   sent: "➤",
   drafts: "▤",
   archive: "▱",
+  spam: "!",
   trash: "⌫",
 };
 const labels = {
@@ -53,6 +55,7 @@ const labels = {
   sent: "Göndərilənlər",
   drafts: "Qaralamalar",
   archive: "Arxiv",
+  spam: "Spam",
   trash: "Zibil",
 };
 const shortDate = (value: string) => {
@@ -103,6 +106,8 @@ export function MailClient({
   const [reply, setReply] = useState<{
     id?: string;
     to?: string;
+    cc?: string;
+    bcc?: string;
     subject?: string;
     message?: string;
   }>({});
@@ -111,13 +116,38 @@ export function MailClient({
   );
   const [states, setStates] = useState<MailState[]>(initialStates);
   const [mobileNav, setMobileNav] = useState(false);
+  const [checked, setChecked] = useState<string[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     let saved: string[] = [];
     try {
       saved = JSON.parse(localStorage.getItem("sp-mail-stars") || "[]");
     } catch {}
-    const timer = setTimeout(() => setStarred(saved), 0);
+    const databaseStars = initialStates
+      .filter((item) => item.is_starred)
+      .map((item) => item.message_id);
+    const timer = setTimeout(
+      () => setStarred([...new Set([...databaseStars, ...saved])]),
+      0,
+    );
     return () => clearTimeout(timer);
+  }, [initialStates]);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLocaleLowerCase() === "k"
+      ) {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (event.key === "Escape") {
+        setCompose(false);
+        setMobileNav(false);
+      }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
   }, []);
   useEffect(() => {
     if (!selected) return;
@@ -206,6 +236,28 @@ export function MailClient({
     setReply(preset);
     setCompose(true);
   };
+  const moveMessages = (
+    ids: string[],
+    destination: "inbox" | "archive" | "trash" | "spam",
+  ) => {
+    ids.forEach((id) => persist(id, { folder: destination }));
+    setStates((items) => {
+      const rest = items.filter((item) => !ids.includes(item.message_id));
+      return [
+        ...rest,
+        ...ids.map((id) => ({
+          message_id: id,
+          folder: destination,
+          is_read:
+            items.find((item) => item.message_id === id)?.is_read ?? true,
+          is_starred: starred.includes(id),
+        })),
+      ];
+    });
+    setChecked([]);
+    setSelected(null);
+    setDetail(null);
+  };
   return (
     <main className="webmail">
       <aside className={mobileNav ? "is-open" : ""}>
@@ -268,6 +320,7 @@ export function MailClient({
           <label>
             <span>⌕</span>
             <input
+              ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Məktublarda axtar"
@@ -277,7 +330,6 @@ export function MailClient({
           <button title="Yenilə" onClick={() => location.reload()}>
             ↻
           </button>
-          <button title="Kömək">?</button>
           <div className="webmail-avatar">{accountEmail[0]?.toUpperCase()}</div>
         </header>
         <div className="webmail-toolbar">
@@ -286,11 +338,43 @@ export function MailClient({
             <span>{list.length} məktub</span>
           </div>
           <div>
-            <button title="Hamısını seç">□</button>
+            <button
+              title="Hamısını seç"
+              onClick={() =>
+                setChecked(
+                  checked.length === list.length
+                    ? []
+                    : list.map((item) => item.id),
+                )
+              }
+            >
+              {checked.length === list.length && list.length ? "▣" : "□"}
+            </button>
+            {checked.length ? (
+              <>
+                <button
+                  title="Arxivlə"
+                  onClick={() => moveMessages(checked, "archive")}
+                >
+                  ▱
+                </button>
+                <button
+                  title="Spam"
+                  onClick={() => moveMessages(checked, "spam")}
+                >
+                  !
+                </button>
+                <button
+                  title="Zibilə at"
+                  onClick={() => moveMessages(checked, "trash")}
+                >
+                  ⌫
+                </button>
+              </>
+            ) : null}
             <button title="Yenilə" onClick={() => location.reload()}>
               ↻
             </button>
-            <button title="Daha çox">•••</button>
           </div>
         </div>
         <div className="webmail-content">
@@ -309,6 +393,8 @@ export function MailClient({
                         openComposer({
                           id: draft.id,
                           to: draft.recipients[0] || "",
+                          cc: draft.cc.join(", "),
+                          bcc: draft.bcc.join(", "),
                           subject: draft.subject,
                           message: draft.body,
                         });
@@ -330,13 +416,43 @@ export function MailClient({
                     ]);
                   }}
                 >
+                  {folder !== "drafts" ? (
+                    <input
+                      type="checkbox"
+                      aria-label="Məktubu seç"
+                      checked={checked.includes(m.id)}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() =>
+                        setChecked((items) =>
+                          items.includes(m.id)
+                            ? items.filter((id) => id !== m.id)
+                            : [...items, m.id],
+                        )
+                      }
+                    />
+                  ) : (
+                    <span />
+                  )}
                   <button
+                    aria-label={
+                      folder === "drafts" ? "Qaralamanı sil" : "Ulduzla"
+                    }
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (folder === "drafts") {
+                        void fetch(`/api/mail/drafts?id=${m.id}`, {
+                          method: "DELETE",
+                        }).then(() => location.reload());
+                        return;
+                      }
                       toggleStar(m.id);
                     }}
                   >
-                    {starred.includes(m.id) ? "★" : "☆"}
+                    {folder === "drafts"
+                      ? "⌫"
+                      : starred.includes(m.id)
+                        ? "★"
+                        : "☆"}
                   </button>
                   <div className="webmail-sender">
                     {(folder === "sent" ? m.to[0] : m.from)
@@ -380,47 +496,43 @@ export function MailClient({
                         <h2>{detail.subject || "Mövzusuz"}</h2>
                       </div>
                       <div>
+                        {folder === "archive" ||
+                        folder === "trash" ||
+                        folder === "spam" ? (
+                          <button
+                            title="Gələnlərə qaytar"
+                            onClick={() => moveMessages([detail.id], "inbox")}
+                          >
+                            ↩
+                          </button>
+                        ) : (
+                          <button
+                            title="Arxivlə"
+                            onClick={() => moveMessages([detail.id], "archive")}
+                          >
+                            ▱
+                          </button>
+                        )}
+                        {folder !== "spam" ? (
+                          <button
+                            title="Spam kimi işarələ"
+                            onClick={() => moveMessages([detail.id], "spam")}
+                          >
+                            !
+                          </button>
+                        ) : null}
+                        {folder !== "trash" ? (
+                          <button
+                            title="Zibilə at"
+                            onClick={() => moveMessages([detail.id], "trash")}
+                          >
+                            ⌫
+                          </button>
+                        ) : null}
                         <button
-                          title="Arxivlə"
-                          onClick={() => {
-                            persist(detail.id, { folder: "archive" });
-                            setStates((items) => [
-                              ...items.filter(
-                                (item) => item.message_id !== detail.id,
-                              ),
-                              {
-                                message_id: detail.id,
-                                folder: "archive",
-                                is_read: true,
-                                is_starred: starred.includes(detail.id),
-                              },
-                            ]);
-                            setSelected(null);
-                          }}
+                          aria-label="Ulduzla"
+                          onClick={() => toggleStar(detail.id)}
                         >
-                          ▱
-                        </button>
-                        <button
-                          title="Zibilə at"
-                          onClick={() => {
-                            persist(detail.id, { folder: "trash" });
-                            setStates((items) => [
-                              ...items.filter(
-                                (item) => item.message_id !== detail.id,
-                              ),
-                              {
-                                message_id: detail.id,
-                                folder: "trash",
-                                is_read: true,
-                                is_starred: starred.includes(detail.id),
-                              },
-                            ]);
-                            setSelected(null);
-                          }}
-                        >
-                          ⌫
-                        </button>
-                        <button onClick={() => toggleStar(detail.id)}>
                           {starred.includes(detail.id) ? "★" : "☆"}
                         </button>
                       </div>
@@ -447,7 +559,14 @@ export function MailClient({
                           ))}
                         </div>
                       ) : null}
-                      {detail.text ? (
+                      {detail.html ? (
+                        <iframe
+                          className="reader-html"
+                          title="Məktub məzmunu"
+                          sandbox=""
+                          srcDoc={detail.html}
+                        />
+                      ) : detail.text ? (
                         <p>{detail.text}</p>
                       ) : (
                         <p className="reader-muted">
@@ -518,7 +637,13 @@ export function MailClient({
             <button className="compose-close" onClick={() => setCompose(false)}>
               ×
             </button>
-            <ComposeForm initial={reply} onSent={() => setCompose(false)} />
+            <ComposeForm
+              initial={reply}
+              onSent={() => {
+                setCompose(false);
+                location.reload();
+              }}
+            />
           </div>
         </div>
       ) : null}
