@@ -104,27 +104,45 @@ const initials = (value: string) =>
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+const azMonths = [
+  "yan",
+  "fev",
+  "mar",
+  "apr",
+  "may",
+  "iyn",
+  "iyl",
+  "avq",
+  "sen",
+  "okt",
+  "noy",
+  "dek",
+];
+const azMonthsLong = [
+  "yanvar",
+  "fevral",
+  "mart",
+  "aprel",
+  "may",
+  "iyun",
+  "iyul",
+  "avqust",
+  "sentyabr",
+  "oktyabr",
+  "noyabr",
+  "dekabr",
+];
+const twoDigits = (value: number) => String(value).padStart(2, "0");
 const shortDate = (value: string) => {
   const date = new Date(value);
-  const today = new Date();
-  if (date.toDateString() === today.toDateString())
-    return new Intl.DateTimeFormat("az-AZ", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  return new Intl.DateTimeFormat("az-AZ", {
-    day: "2-digit",
-    month: "short",
-  }).format(date);
+  if (Number.isNaN(date.getTime())) return "—";
+  return `${twoDigits(date.getUTCDate())} ${azMonths[date.getUTCMonth()]}`;
 };
-const fullDate = (value: string) =>
-  new Intl.DateTimeFormat("az-AZ", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+const fullDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return `${twoDigits(date.getUTCDate())} ${azMonthsLong[date.getUTCMonth()]} ${date.getUTCFullYear()}, ${twoDigits(date.getUTCHours())}:${twoDigits(date.getUTCMinutes())} UTC`;
+};
 const statusLabel = (status: string) =>
   ({
     delivered: "Çatdırıldı",
