@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
+import { createHash } from "node:crypto";
 
 export async function GET() {
   const supabase = await createClient();
@@ -13,11 +14,16 @@ export async function GET() {
     .replace(/^(["'])(.*)\1$/, "$2")
     .trim();
   const result = await getResend().domains.list();
+  const inbound = await getResend().emails.receiving.list({ limit: 1 });
+  const fingerprint = createHash("sha256").update(normalized).digest("hex");
+  const expected = process.env.RESEND_API_KEY_FINGERPRINT ?? "";
   return Response.json({
     configured: Boolean(normalized),
     prefixOk: normalized.startsWith("re_"),
     length: normalized.length,
+    fingerprintMatches: Boolean(expected) && fingerprint === expected,
     apiOk: !result.error,
-    apiError: result.error?.message ?? null,
+    receivingApiOk: !inbound.error,
+    receivingError: inbound.error?.message ?? null,
   });
 }
