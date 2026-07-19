@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
+import { getResend } from "@/lib/resend";
 
 export async function GET(
   request: Request,
@@ -10,7 +10,7 @@ export async function GET(
   if (!auth?.claims)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = getResend();
   if (new URL(request.url).searchParams.get("direction") === "sent") {
     const sent = await resend.emails.get(id);
     if (sent.error || !sent.data)

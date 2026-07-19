@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
+import { getMailFrom, getResend } from "@/lib/resend";
 
 export type MailActionState = { error?: string; success?: string } | undefined;
 
@@ -45,9 +45,12 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
   if (!to || !subject || !text || !/^\S+@\S+\.\S+$/.test(to)) {
     return { error: "Alıcı, mövzu və mesajı düzgün doldurun." };
   }
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { error: "Mail xidməti hələ qoşulmayıb." };
-  const resend = new Resend(apiKey);
+  let resend;
+  try {
+    resend = getResend();
+  } catch {
+    return { error: "Mail xidməti hələ qoşulmayıb." };
+  }
   if (
     files.some((file) => file.size > 10 * 1024 * 1024) ||
     files.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024
@@ -61,7 +64,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
     })),
   );
   const { data: sent, error } = await resend.emails.send({
-    from: process.env.MAIL_FROM || "Sapiens Pay <info@sapiens-pay.com>",
+    from: getMailFrom(),
     to,
     cc,
     bcc,
@@ -80,7 +83,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
             .replace(/^\s*(re|fw|fwd)\s*:\s*/i, "")
             .trim()
             .toLocaleLowerCase() || sent.id,
-        sender: process.env.MAIL_FROM || "Sapiens Pay <info@sapiens-pay.com>",
+        sender: getMailFrom(),
         recipients: [to],
         cc,
         bcc,

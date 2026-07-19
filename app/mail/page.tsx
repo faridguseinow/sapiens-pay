@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Resend } from "resend";
+import { getResend } from "@/lib/resend";
 import { createClient } from "@/lib/supabase/server";
 import { MailClient } from "./mail-client";
 
@@ -9,7 +9,7 @@ export default async function MailPage() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) redirect("/mail/login");
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = getResend();
   const [incoming, outgoing, stateResult, draftResult] = await Promise.all([
     resend.emails.receiving.list({ limit: 100 }),
     resend.emails.list({ limit: 100 }),

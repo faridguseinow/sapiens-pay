@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { Resend, type WebhookEventPayload } from "resend";
+import type { WebhookEventPayload } from "resend";
+import { getResend, getWebhookSecret } from "@/lib/resend";
 
 function admin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -27,11 +28,14 @@ function threadKey(
 }
 
 export async function POST(request: Request) {
-  const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (!secret)
+  let secret: string;
+  try {
+    secret = getWebhookSecret();
+  } catch {
     return Response.json({ error: "Webhook not configured" }, { status: 503 });
+  }
   const payload = await request.text();
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = getResend();
   let event: WebhookEventPayload;
   try {
     event = resend.webhooks.verify({

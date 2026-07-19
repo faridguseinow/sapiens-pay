@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
+import { getResend } from "@/lib/resend";
 
 const normalize = (subject: string) =>
   subject
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   const subject = new URL(request.url).searchParams.get("subject") || "";
   const key = normalize(subject);
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = getResend();
   const [inbox, sent] = await Promise.all([
     resend.emails.receiving.list({ limit: 100 }),
     resend.emails.list({ limit: 100 }),
