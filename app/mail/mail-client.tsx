@@ -517,6 +517,7 @@ export function MailClient({
 
   return (
     <main
+      translate="no"
       className={`webmail density-${density}${selected ? " has-open-message" : ""}`}
     >
       {mobileNav ? (
@@ -860,7 +861,9 @@ export function MailClient({
                             ? mailItem.to.join(", ") || "Alıcı yoxdur"
                             : displayName(sender)}
                         </b>
-                        <time>{shortDate(mailItem.created_at)}</time>
+                        <time translate="no" suppressHydrationWarning>
+                          {shortDate(mailItem.created_at)}
+                        </time>
                       </div>
                       <h3>{mailItem.subject || "Mövzusuz"}</h3>
                       <p>
@@ -1079,7 +1082,9 @@ export function MailClient({
                         </dl>
                       </details>
                     </div>
-                    <time>{fullDate(detail.created_at)}</time>
+                    <time translate="no" suppressHydrationWarning>
+                      {fullDate(detail.created_at)}
+                    </time>
                     <IconButton
                       label="Cavabla"
                       onClick={() =>
@@ -1109,7 +1114,9 @@ export function MailClient({
                               <summary>
                                 <span>{initials(item.from)}</span>
                                 <b>{displayName(item.from)}</b>
-                                <time>{shortDate(item.created_at)}</time>
+                                <time translate="no" suppressHydrationWarning>
+                                  {shortDate(item.created_at)}
+                                </time>
                                 <ChevronDown size={16} />
                               </summary>
                               <div>{item.text || "HTML formatlı məktub"}</div>
