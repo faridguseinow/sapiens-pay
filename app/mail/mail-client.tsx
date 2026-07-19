@@ -378,10 +378,12 @@ export function MailClient({
             }) satisfies Incoming,
         );
     if (folder === "sent")
-      return outgoing.filter((mail) =>
-        `${mail.to.join(" ")} ${mail.subject}`
-          .toLocaleLowerCase("az")
-          .includes(q),
+      return outgoing.filter(
+        (mail) =>
+          (stateFor(mail.id)?.folder || "sent") !== "trash" &&
+          `${mail.to.join(" ")} ${mail.subject}`
+            .toLocaleLowerCase("az")
+            .includes(q),
       );
     let rows = incoming.filter((mail) =>
       `${mail.from} ${mail.subject} ${mail.to.join(" ")}`
@@ -1004,7 +1006,7 @@ export function MailClient({
                           <CircleAlert size={18} />
                         </IconButton>
                       ) : null}
-                      {folder !== "trash" && folder !== "sent" ? (
+                      {folder !== "trash" ? (
                         <IconButton
                           label="Zibilə köçür"
                           onClick={() => moveMessages([detail.id], "trash")}
