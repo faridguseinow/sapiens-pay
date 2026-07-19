@@ -1,6 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Archive,
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleAlert,
+  Download,
+  FileText,
+  Filter,
+  Forward,
+  Inbox,
+  LayoutPanelLeft,
+  ListFilter,
+  LogOut,
+  Mail,
+  MailOpen,
+  Menu,
+  MoreHorizontal,
+  Paperclip,
+  Pencil,
+  Printer,
+  RefreshCw,
+  Reply,
+  ReplyAll,
+  Search,
+  Send,
+  Settings2,
+  Sparkles,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ComposeForm } from "./compose-form";
 import { mailLogout } from "./actions";
 
@@ -39,33 +73,68 @@ type Detail = {
 };
 type Folder =
   "inbox" | "starred" | "sent" | "drafts" | "archive" | "spam" | "trash";
+type FilterMode = "all" | "unread" | "starred" | "attachments";
+type Density = "comfortable" | "compact";
 
-const icons = {
-  inbox: "▣",
-  starred: "☆",
-  sent: "➤",
-  drafts: "▤",
-  archive: "▱",
-  spam: "!",
-  trash: "⌫",
-};
-const labels = {
-  inbox: "Gələnlər",
+const folderMeta = {
+  inbox: { label: "Gələnlər", Icon: Inbox },
+  starred: { label: "Ulduzlu", Icon: Star },
+  sent: { label: "Göndərilənlər", Icon: Send },
+  drafts: { label: "Qaralamalar", Icon: FileText },
+  archive: { label: "Arxiv", Icon: Archive },
+  spam: { label: "Spam", Icon: CircleAlert },
+  trash: { label: "Zibil", Icon: Trash2 },
+} satisfies Record<Folder, { label: string; Icon: typeof Inbox }>;
+
+const filterMeta = {
+  all: "Hamısı",
+  unread: "Oxunmamış",
   starred: "Ulduzlu",
-  sent: "Göndərilənlər",
-  drafts: "Qaralamalar",
-  archive: "Arxiv",
-  spam: "Spam",
-  trash: "Zibil",
-};
+  attachments: "Əlavəli",
+} satisfies Record<FilterMode, string>;
+
+const stripAddress = (value: string) =>
+  value.match(/<([^>]+)>/)?.[1] || value.trim();
+const displayName = (value: string) =>
+  value.replace(/\s*<[^>]+>\s*$/, "").replace(/^['\"]|['\"]$/g, "") || value;
+const initials = (value: string) =>
+  displayName(value)
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 const shortDate = (value: string) => {
   const date = new Date(value);
-  return `${String(date.getUTCDate()).padStart(2, "0")}.${String(date.getUTCMonth() + 1).padStart(2, "0")}.${date.getUTCFullYear()}`;
+  const today = new Date();
+  if (date.toDateString() === today.toDateString())
+    return new Intl.DateTimeFormat("az-AZ", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  return new Intl.DateTimeFormat("az-AZ", {
+    day: "2-digit",
+    month: "short",
+  }).format(date);
 };
-const fullDate = (value: string) => {
-  const date = new Date(value);
-  return `${shortDate(value)} ${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")} UTC`;
-};
+const fullDate = (value: string) =>
+  new Intl.DateTimeFormat("az-AZ", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+const statusLabel = (status: string) =>
+  ({
+    delivered: "Çatdırıldı",
+    sent: "Göndərildi",
+    queued: "Növbədədir",
+    bounced: "Geri qaytarıldı",
+    complained: "Şikayət edildi",
+    opened: "Açıldı",
+    clicked: "Keçid açıldı",
+  })[status] || status;
 
 type MailState = {
   message_id: string;
@@ -82,6 +151,45 @@ type Draft = {
   body: string;
   updated_at: string;
 };
+type ComposePreset = {
+  id?: string;
+  to?: string;
+  cc?: string;
+  bcc?: string;
+  subject?: string;
+  message?: string;
+};
+
+function IconButton({
+  label,
+  children,
+  active = false,
+  disabled = false,
+  onClick,
+}: {
+  label: string;
+  children: React.ReactNode;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`mail-icon-button${active ? " is-active" : ""}`}
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+      <span className="mail-tooltip" role="tooltip">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 export function MailClient({
   incoming,
   outgoing,
@@ -97,209 +205,363 @@ export function MailClient({
 }) {
   const [folder, setFolder] = useState<Folder>("inbox");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string | null>(
-    incoming[0]?.id ?? null,
-  );
+  const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [thread, setThread] = useState<Detail[]>([]);
   const [compose, setCompose] = useState(false);
-  const [reply, setReply] = useState<{
-    id?: string;
-    to?: string;
-    cc?: string;
-    bcc?: string;
-    subject?: string;
-    message?: string;
-  }>({});
-  const [starred, setStarred] = useState<string[]>(
-    initialStates.filter((s) => s.is_starred).map((s) => s.message_id),
-  );
+  const [composeMinimized, setComposeMinimized] = useState(false);
+  const [reply, setReply] = useState<ComposePreset>({});
   const [states, setStates] = useState<MailState[]>(initialStates);
+  const [drafts, setDrafts] = useState<Draft[]>(initialDrafts);
   const [mobileNav, setMobileNav] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [density, setDensity] = useState<Density>("comfortable");
+  const [toast, setToast] = useState("");
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const stateFor = useCallback(
+    (id: string) => states.find((item) => item.message_id === id),
+    [states],
+  );
+  const starred = useMemo(
+    () =>
+      states
+        .filter((state) => state.is_starred)
+        .map((state) => state.message_id),
+    [states],
+  );
+  const unreadCount = useMemo(
+    () =>
+      incoming.filter((mail) => !(stateFor(mail.id)?.is_read ?? false)).length,
+    [incoming, stateFor],
+  );
+
+  const notify = useCallback((message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 2600);
+  }, []);
+  const persist = useCallback(
+    async (messageId: string, patch: Record<string, unknown>) => {
+      const response = await fetch("/api/mail/state", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messageId, ...patch }),
+      });
+      if (!response.ok) notify("Dəyişiklik saxlanılmadı. Yenidən cəhd edin.");
+    },
+    [notify],
+  );
+
+  const patchStates = useCallback(
+    (
+      ids: string[],
+      patch: Partial<Pick<MailState, "folder" | "is_read" | "is_starred">>,
+    ) => {
+      setStates((items) => {
+        const map = new Map(items.map((item) => [item.message_id, item]));
+        ids.forEach((id) => {
+          const current = map.get(id);
+          map.set(id, {
+            message_id: id,
+            folder: patch.folder ?? current?.folder ?? "inbox",
+            is_read: patch.is_read ?? current?.is_read ?? false,
+            is_starred: patch.is_starred ?? current?.is_starred ?? false,
+          });
+        });
+        return [...map.values()];
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     let saved: string[] = [];
     try {
       saved = JSON.parse(localStorage.getItem("sp-mail-stars") || "[]");
     } catch {}
-    const databaseStars = initialStates
-      .filter((item) => item.is_starred)
-      .map((item) => item.message_id);
-    const timer = setTimeout(
-      () => setStarred([...new Set([...databaseStars, ...saved])]),
-      0,
+    const missing = saved.filter(
+      (id) => !initialStates.some((state) => state.message_id === id),
     );
-    return () => clearTimeout(timer);
-  }, [initialStates]);
+    const savedDensity = localStorage.getItem("sp-mail-density");
+    const timer = window.setTimeout(() => {
+      if (missing.length) patchStates(missing, { is_starred: true });
+      if (savedDensity === "compact") setDensity("compact");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [initialStates, patchStates]);
+
+  const toggleStar = useCallback(
+    (id: string) => {
+      const value = !(stateFor(id)?.is_starred ?? false);
+      patchStates([id], { is_starred: value });
+      void persist(id, { isStarred: value });
+      const next = value
+        ? [...new Set([...starred, id])]
+        : starred.filter((item) => item !== id);
+      localStorage.setItem("sp-mail-stars", JSON.stringify(next));
+      notify(value ? "Ulduzluya əlavə edildi" : "Ulduz silindi");
+    },
+    [notify, patchStates, persist, starred, stateFor],
+  );
+
+  const markRead = useCallback(
+    (ids: string[], value: boolean) => {
+      patchStates(ids, { is_read: value });
+      ids.forEach((id) => void persist(id, { isRead: value }));
+      notify(value ? "Oxunmuş kimi işarələndi" : "Oxunmamış kimi işarələndi");
+    },
+    [notify, patchStates, persist],
+  );
+
+  const moveMessages = useCallback(
+    (ids: string[], destination: "inbox" | "archive" | "trash" | "spam") => {
+      patchStates(ids, { folder: destination });
+      ids.forEach((id) => void persist(id, { folder: destination }));
+      setChecked([]);
+      if (selected && ids.includes(selected)) {
+        setSelected(null);
+        setDetail(null);
+      }
+      notify(
+        destination === "inbox"
+          ? "Gələnlərə qaytarıldı"
+          : destination === "archive"
+            ? "Arxivləndi"
+            : destination === "spam"
+              ? "Spam kimi işarələndi"
+              : "Zibilə köçürüldü",
+      );
+    },
+    [notify, patchStates, persist, selected],
+  );
+
+  const list = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase("az");
+    if (folder === "drafts")
+      return drafts
+        .filter((draft) =>
+          `${draft.recipients.join(" ")} ${draft.subject} ${draft.body}`
+            .toLocaleLowerCase("az")
+            .includes(q),
+        )
+        .map(
+          (draft) =>
+            ({
+              id: draft.id,
+              from: "Qaralama",
+              to: draft.recipients,
+              subject: draft.subject,
+              created_at: draft.updated_at,
+              attachments: [],
+            }) satisfies Incoming,
+        );
+    if (folder === "sent")
+      return outgoing.filter((mail) =>
+        `${mail.to.join(" ")} ${mail.subject}`
+          .toLocaleLowerCase("az")
+          .includes(q),
+      );
+    let rows = incoming.filter((mail) =>
+      `${mail.from} ${mail.subject} ${mail.to.join(" ")}`
+        .toLocaleLowerCase("az")
+        .includes(q),
+    );
+    if (folder === "starred")
+      rows = rows.filter((mail) => starred.includes(mail.id));
+    else
+      rows = rows.filter(
+        (mail) => (stateFor(mail.id)?.folder || "inbox") === folder,
+      );
+    if (filter === "unread")
+      rows = rows.filter((mail) => !stateFor(mail.id)?.is_read);
+    if (filter === "starred")
+      rows = rows.filter((mail) => starred.includes(mail.id));
+    if (filter === "attachments")
+      rows = rows.filter((mail) => mail.attachments.length > 0);
+    return rows;
+  }, [drafts, filter, folder, incoming, outgoing, query, starred, stateFor]);
+
+  const selectedIndex = list.findIndex((item) => item.id === selected);
+  const allSelected = list.length > 0 && checked.length === list.length;
+
+  const openMessage = useCallback(
+    (id: string) => {
+      if (folder === "drafts") {
+        const draft = drafts.find((item) => item.id === id);
+        if (draft) {
+          setReply({
+            id: draft.id,
+            to: draft.recipients.join(", "),
+            cc: draft.cc.join(", "),
+            bcc: draft.bcc.join(", "),
+            subject: draft.subject,
+            message: draft.body,
+          });
+          setCompose(true);
+          setComposeMinimized(false);
+        }
+        return;
+      }
+      setSelected(id);
+      setDetail(null);
+      setLoadingDetail(true);
+      if (folder !== "sent") markRead([id], true);
+    },
+    [drafts, folder, markRead],
+  );
+
+  useEffect(() => {
+    if (!selected) return;
+    const controller = new AbortController();
+    fetch(
+      `/api/mail/${selected}${folder === "sent" ? "?direction=sent" : ""}`,
+      {
+        signal: controller.signal,
+      },
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error("message");
+        return response.json();
+      })
+      .then((value: Detail) => {
+        setDetail(value);
+        return fetch(
+          `/api/mail/thread?subject=${encodeURIComponent(value.subject || "")}`,
+          {
+            signal: controller.signal,
+          },
+        );
+      })
+      .then((response) => response.json())
+      .then((items) => Array.isArray(items) && setThread(items))
+      .catch((error) => {
+        if (error.name !== "AbortError") notify("Məktub açıla bilmədi");
+      })
+      .finally(() => setLoadingDetail(false));
+    return () => controller.abort();
+  }, [folder, notify, selected]);
+
+  const openComposer = useCallback((preset: ComposePreset = {}) => {
+    setReply(preset);
+    setCompose(true);
+    setComposeMinimized(false);
+  }, []);
+
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        event.key.toLocaleLowerCase() === "k"
-      ) {
+      const target = event.target as HTMLElement | null;
+      const typing = target?.matches(
+        "input, textarea, [contenteditable='true']",
+      );
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         searchRef.current?.focus();
       }
+      if (!typing && event.key.toLowerCase() === "c") openComposer();
+      if (!typing && event.key.toLowerCase() === "r" && detail)
+        openComposer({
+          to: detail.reply_to?.[0] || stripAddress(detail.from),
+          subject: `Re: ${detail.subject}`,
+        });
       if (event.key === "Escape") {
-        setCompose(false);
         setMobileNav(false);
+        setFilterOpen(false);
+        setMoreOpen(false);
       }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, []);
-  useEffect(() => {
-    if (!selected) return;
-    let active = true;
-    fetch(`/api/mail/${selected}${folder === "sent" ? "?direction=sent" : ""}`)
-      .then((r) => r.json())
-      .then((v) => {
-        if (active) {
-          setDetail(v);
-          fetch(
-            `/api/mail/thread?subject=${encodeURIComponent(v.subject || "")}`,
-          )
-            .then((r) => r.json())
-            .then((items) => {
-              if (active && Array.isArray(items)) setThread(items);
-            });
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [selected, folder]);
-  const persist = (messageId: string, patch: Record<string, unknown>) => {
-    void fetch("/api/mail/state", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messageId, ...patch }),
+  }, [detail, openComposer]);
+
+  const deleteDraft = async (id: string) => {
+    const response = await fetch(`/api/mail/drafts?id=${id}`, {
+      method: "DELETE",
     });
+    if (response.ok) {
+      setDrafts((items) => items.filter((item) => item.id !== id));
+      notify("Qaralama silindi");
+    } else notify("Qaralama silinə bilmədi");
   };
-  const toggleStar = (id: string) =>
-    setStarred((v) => {
-      const value = !v.includes(id);
-      const next = value ? [...v, id] : v.filter((x) => x !== id);
-      localStorage.setItem("sp-mail-stars", JSON.stringify(next));
-      persist(id, { isStarred: value });
-      setStates((s) => [
-        ...s.filter((x) => x.message_id !== id),
-        {
-          message_id: id,
-          folder: s.find((x) => x.message_id === id)?.folder || "inbox",
-          is_read: s.find((x) => x.message_id === id)?.is_read || false,
-          is_starred: value,
-        },
-      ]);
-      return next;
-    });
-  const list = useMemo(() => {
-    const q = query.toLocaleLowerCase();
-    if (folder === "sent")
-      return outgoing.filter((m) =>
-        `${m.to.join(" ")} ${m.subject}`.toLocaleLowerCase().includes(q),
-      );
-    let rows = incoming.filter((m) =>
-      `${m.from} ${m.subject} ${m.to.join(" ")}`
-        .toLocaleLowerCase()
-        .includes(q),
-    );
-    if (folder === "starred") rows = rows.filter((m) => starred.includes(m.id));
-    else if (folder !== "drafts")
-      rows = rows.filter(
-        (m) =>
-          (states.find((s) => s.message_id === m.id)?.folder || "inbox") ===
-          folder,
-      );
-    else
-      return initialDrafts
-        .filter((d) =>
-          `${d.recipients.join(" ")} ${d.subject} ${d.body}`
-            .toLocaleLowerCase()
-            .includes(q),
-        )
-        .map(
-          (d) =>
-            ({
-              id: d.id,
-              from: "Qaralama",
-              to: d.recipients,
-              subject: d.subject,
-              created_at: d.updated_at,
-              attachments: [],
-            }) satisfies Incoming,
-        );
-    return rows;
-  }, [folder, query, incoming, outgoing, starred, states, initialDrafts]);
-  const openComposer = (preset = {}) => {
-    setReply(preset);
-    setCompose(true);
-  };
-  const moveMessages = (
-    ids: string[],
-    destination: "inbox" | "archive" | "trash" | "spam",
-  ) => {
-    ids.forEach((id) => persist(id, { folder: destination }));
-    setStates((items) => {
-      const rest = items.filter((item) => !ids.includes(item.message_id));
-      return [
-        ...rest,
-        ...ids.map((id) => ({
-          message_id: id,
-          folder: destination,
-          is_read:
-            items.find((item) => item.message_id === id)?.is_read ?? true,
-          is_starred: starred.includes(id),
-        })),
-      ];
-    });
-    setChecked([]);
+
+  const selectFolder = (next: Folder) => {
+    setFolder(next);
     setSelected(null);
     setDetail(null);
+    setThread([]);
+    setChecked([]);
+    setFilter("all");
+    setMobileNav(false);
   };
+
   return (
-    <main className="webmail">
-      <aside className={mobileNav ? "is-open" : ""}>
+    <main
+      className={`webmail density-${density}${selected ? " has-open-message" : ""}`}
+    >
+      {mobileNav ? (
+        <button
+          className="mail-nav-backdrop"
+          onClick={() => setMobileNav(false)}
+          aria-label="Menyunu bağla"
+        />
+      ) : null}
+      <aside
+        className={mobileNav ? "is-open" : ""}
+        aria-label="Mail qovluqları"
+      >
         <div className="webmail-logo">
-          <i>sp</i>
+          <i>
+            <Sparkles size={18} />
+          </i>
           <div>
             <b>Sapiens Mail</b>
-            <span>Workspace</span>
+            <span>Business workspace</span>
           </div>
-          <button onClick={() => setMobileNav(false)}>×</button>
+          <IconButton label="Menyunu bağla" onClick={() => setMobileNav(false)}>
+            <X size={20} />
+          </IconButton>
         </div>
         <button className="webmail-new" onClick={() => openComposer()}>
-          ＋ <span>Yeni məktub</span>
+          <Pencil size={19} />
+          <span>Yeni məktub</span>
         </button>
         <nav>
-          {(Object.keys(labels) as Folder[]).map((key) => (
-            <button
-              key={key}
-              className={folder === key ? "active" : ""}
-              onClick={() => {
-                setFolder(key);
-                setSelected(key === "inbox" ? (incoming[0]?.id ?? null) : null);
-                setDetail(null);
-                setMobileNav(false);
-              }}
-            >
-              <i>{icons[key]}</i>
-              <span>{labels[key]}</span>
-              {key === "inbox" && incoming.length ? (
-                <em>{incoming.length}</em>
-              ) : null}
-            </button>
-          ))}
+          {(Object.keys(folderMeta) as Folder[]).map((key) => {
+            const { Icon, label } = folderMeta[key];
+            const count =
+              key === "inbox"
+                ? unreadCount
+                : key === "drafts"
+                  ? drafts.length
+                  : 0;
+            return (
+              <button
+                key={key}
+                className={folder === key ? "active" : ""}
+                onClick={() => selectFolder(key)}
+                aria-current={folder === key ? "page" : undefined}
+              >
+                <Icon size={18} strokeWidth={1.9} />
+                <span>{label}</span>
+                {count ? <em>{count}</em> : null}
+              </button>
+            );
+          })}
         </nav>
-        <div className="webmail-storage">
-          <span>
-            <b>Yaddaş</b>
-            <small>Resend Cloud</small>
-          </span>
-          <div>
-            <i />
-          </div>
+        <div className="mail-shortcuts">
+          <span>QISA YOLLAR</span>
+          <p>
+            <kbd>C</kbd> Yeni məktub
+          </p>
+          <p>
+            <kbd>R</kbd> Cavabla
+          </p>
+          <p>
+            <kbd>⌘K</kbd> Axtar
+          </p>
         </div>
         <form action={mailLogout}>
           <button className="webmail-user">
@@ -308,343 +570,691 @@ export function MailClient({
               <b>{accountEmail.split("@")[0]}</b>
               <small>{accountEmail}</small>
             </span>
-            <em>↪</em>
+            <LogOut size={17} />
           </button>
         </form>
       </aside>
+
       <section className="webmail-main">
-        <header>
-          <button className="webmail-menu" onClick={() => setMobileNav(true)}>
-            ☰
-          </button>
-          <label>
-            <span>⌕</span>
+        <header className="mail-topbar">
+          <IconButton label="Menyunu aç" onClick={() => setMobileNav(true)}>
+            <Menu size={20} />
+          </IconButton>
+          <label className="mail-search">
+            <Search size={19} />
             <input
               ref={searchRef}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Məktublarda axtar"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Məktub, göndərən və ya mövzu axtar..."
+              aria-label="Məktublarda axtar"
             />
-            <kbd>⌘ K</kbd>
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Axtarışı təmizlə"
+              >
+                <X size={17} />
+              </button>
+            ) : (
+              <kbd>⌘ K</kbd>
+            )}
           </label>
-          <button title="Yenilə" onClick={() => location.reload()}>
-            ↻
-          </button>
-          <div className="webmail-avatar">{accountEmail[0]?.toUpperCase()}</div>
-        </header>
-        <div className="webmail-toolbar">
-          <div>
-            <h1>{labels[folder]}</h1>
-            <span>{list.length} məktub</span>
+          <IconButton label="Yenilə" onClick={() => location.reload()}>
+            <RefreshCw size={18} />
+          </IconButton>
+          <div className="webmail-avatar" title={accountEmail}>
+            {accountEmail[0]?.toUpperCase()}
           </div>
-          <div>
-            <button
-              title="Hamısını seç"
-              onClick={() =>
-                setChecked(
-                  checked.length === list.length
-                    ? []
-                    : list.map((item) => item.id),
-                )
-              }
-            >
-              {checked.length === list.length && list.length ? "▣" : "□"}
-            </button>
+        </header>
+
+        <div className="webmail-toolbar">
+          <div className="mail-title">
+            <h1>{folderMeta[folder].label}</h1>
+            <span>
+              {list.length} məktub
+              {unreadCount && folder === "inbox"
+                ? ` · ${unreadCount} oxunmamış`
+                : ""}
+            </span>
+          </div>
+          <div className="mail-toolbar-actions">
+            <div className="mail-select-control">
+              <IconButton
+                label={allSelected ? "Seçimi ləğv et" : "Hamısını seç"}
+                active={allSelected}
+                onClick={() =>
+                  setChecked(allSelected ? [] : list.map((item) => item.id))
+                }
+              >
+                <span
+                  className={`mail-checkbox${allSelected ? " checked" : ""}`}
+                >
+                  {allSelected ? <Check size={13} /> : null}
+                </span>
+              </IconButton>
+              <button
+                className="mail-select-arrow"
+                onClick={() => setFilterOpen((value) => !value)}
+                aria-label="Seçim və filtr menyusu"
+              >
+                <ChevronDown size={14} />
+              </button>
+            </div>
             {checked.length ? (
               <>
-                <button
-                  title="Arxivlə"
+                <span className="mail-selection-count">
+                  {checked.length} seçilib
+                </span>
+                <IconButton
+                  label="Oxunmuş et"
+                  onClick={() => markRead(checked, true)}
+                >
+                  <MailOpen size={18} />
+                </IconButton>
+                <IconButton
+                  label="Oxunmamış et"
+                  onClick={() => markRead(checked, false)}
+                >
+                  <Mail size={18} />
+                </IconButton>
+                <IconButton
+                  label="Arxivlə"
                   onClick={() => moveMessages(checked, "archive")}
                 >
-                  ▱
-                </button>
-                <button
-                  title="Spam"
+                  <Archive size={18} />
+                </IconButton>
+                <IconButton
+                  label="Spam kimi işarələ"
                   onClick={() => moveMessages(checked, "spam")}
                 >
-                  !
-                </button>
-                <button
-                  title="Zibilə at"
+                  <CircleAlert size={18} />
+                </IconButton>
+                <IconButton
+                  label="Zibilə köçür"
                   onClick={() => moveMessages(checked, "trash")}
                 >
-                  ⌫
-                </button>
+                  <Trash2 size={18} />
+                </IconButton>
               </>
-            ) : null}
-            <button title="Yenilə" onClick={() => location.reload()}>
-              ↻
-            </button>
+            ) : (
+              <>
+                <div className="mail-popover-wrap">
+                  <IconButton
+                    label="Filtrlər"
+                    active={filter !== "all"}
+                    onClick={() => setFilterOpen((value) => !value)}
+                  >
+                    <ListFilter size={18} />
+                  </IconButton>
+                  {filterOpen ? (
+                    <div className="mail-popover" role="menu">
+                      <strong>Məktubları göstər</strong>
+                      {(Object.keys(filterMeta) as FilterMode[]).map((key) => (
+                        <button
+                          key={key}
+                          className={filter === key ? "active" : ""}
+                          onClick={() => {
+                            setFilter(key);
+                            setFilterOpen(false);
+                          }}
+                        >
+                          <span>{filterMeta[key]}</span>
+                          {filter === key ? <Check size={15} /> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <IconButton label="Yenilə" onClick={() => location.reload()}>
+                  <RefreshCw size={18} />
+                </IconButton>
+                <div className="mail-popover-wrap">
+                  <IconButton
+                    label="Görünüş seçimləri"
+                    onClick={() => setMoreOpen((value) => !value)}
+                  >
+                    <Settings2 size={18} />
+                  </IconButton>
+                  {moreOpen ? (
+                    <div className="mail-popover mail-view-popover">
+                      <strong>Siyahı sıxlığı</strong>
+                      <button
+                        className={density === "comfortable" ? "active" : ""}
+                        onClick={() => {
+                          setDensity("comfortable");
+                          localStorage.setItem(
+                            "sp-mail-density",
+                            "comfortable",
+                          );
+                          setMoreOpen(false);
+                        }}
+                      >
+                        <LayoutPanelLeft size={16} />
+                        <span>Rahat</span>
+                        {density === "comfortable" ? <Check size={15} /> : null}
+                      </button>
+                      <button
+                        className={density === "compact" ? "active" : ""}
+                        onClick={() => {
+                          setDensity("compact");
+                          localStorage.setItem("sp-mail-density", "compact");
+                          setMoreOpen(false);
+                        }}
+                      >
+                        <Filter size={16} />
+                        <span>Kompakt</span>
+                        {density === "compact" ? <Check size={15} /> : null}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            )}
           </div>
         </div>
+
         <div className="webmail-content">
-          <section className="webmail-list">
+          <section
+            className="webmail-list"
+            aria-label={`${folderMeta[folder].label} məktubları`}
+          >
             {list.length ? (
-              list.map((m: Incoming | Outgoing) => (
-                <article
-                  key={m.id}
-                  className={`${selected === m.id ? "active" : ""} ${!states.find((item) => item.message_id === m.id)?.is_read && folder !== "sent" ? "unread" : ""}`}
-                  onClick={() => {
-                    if (folder === "drafts") {
-                      const draft = initialDrafts.find(
-                        (item) => item.id === m.id,
-                      );
-                      if (draft)
-                        openComposer({
-                          id: draft.id,
-                          to: draft.recipients[0] || "",
-                          cc: draft.cc.join(", "),
-                          bcc: draft.bcc.join(", "),
-                          subject: draft.subject,
-                          message: draft.body,
-                        });
-                      return;
-                    }
-                    setSelected(m.id);
-                    setDetail(null);
-                    persist(m.id, { isRead: true });
-                    setStates((items) => [
-                      ...items.filter((item) => item.message_id !== m.id),
-                      {
-                        message_id: m.id,
-                        folder:
-                          items.find((item) => item.message_id === m.id)
-                            ?.folder || "inbox",
-                        is_read: true,
-                        is_starred: starred.includes(m.id),
-                      },
-                    ]);
-                  }}
-                >
-                  {folder !== "drafts" ? (
-                    <input
-                      type="checkbox"
-                      aria-label="Məktubu seç"
-                      checked={checked.includes(m.id)}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={() =>
-                        setChecked((items) =>
-                          items.includes(m.id)
-                            ? items.filter((id) => id !== m.id)
-                            : [...items, m.id],
-                        )
-                      }
-                    />
-                  ) : (
-                    <span />
-                  )}
-                  <button
-                    aria-label={
-                      folder === "drafts" ? "Qaralamanı sil" : "Ulduzla"
-                    }
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (folder === "drafts") {
-                        void fetch(`/api/mail/drafts?id=${m.id}`, {
-                          method: "DELETE",
-                        }).then(() => location.reload());
-                        return;
-                      }
-                      toggleStar(m.id);
+              list.map((mailItem: Incoming | Outgoing) => {
+                const isDraft = folder === "drafts";
+                const isSent = folder === "sent";
+                const isUnread =
+                  !isSent &&
+                  !isDraft &&
+                  !(stateFor(mailItem.id)?.is_read ?? false);
+                const sender = isSent ? mailItem.to.join(", ") : mailItem.from;
+                return (
+                  <article
+                    key={mailItem.id}
+                    className={`${selected === mailItem.id ? "active" : ""}${isUnread ? " unread" : ""}`}
+                    onClick={() => openMessage(mailItem.id)}
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") openMessage(mailItem.id);
                     }}
+                    aria-label={`${sender}: ${mailItem.subject || "Mövzusuz"}`}
                   >
-                    {folder === "drafts"
-                      ? "⌫"
-                      : starred.includes(m.id)
-                        ? "★"
-                        : "☆"}
-                  </button>
-                  <div className="webmail-sender">
-                    {(folder === "sent" ? m.to[0] : m.from)
-                      ?.charAt(0)
-                      .toUpperCase()}
-                  </div>
-                  <div>
-                    <div>
-                      <b>{folder === "sent" ? m.to.join(", ") : m.from}</b>
-                      <time>{shortDate(m.created_at)}</time>
+                    {!isDraft ? (
+                      <label
+                        className="mail-row-check"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked.includes(mailItem.id)}
+                          onChange={() =>
+                            setChecked((items) =>
+                              items.includes(mailItem.id)
+                                ? items.filter((id) => id !== mailItem.id)
+                                : [...items, mailItem.id],
+                            )
+                          }
+                          aria-label="Məktubu seç"
+                        />
+                        <span>
+                          {checked.includes(mailItem.id) ? (
+                            <Check size={12} />
+                          ) : null}
+                        </span>
+                      </label>
+                    ) : (
+                      <span />
+                    )}
+                    <button
+                      className={`mail-row-star${starred.includes(mailItem.id) ? " active" : ""}`}
+                      aria-label={
+                        isDraft
+                          ? "Qaralamanı sil"
+                          : starred.includes(mailItem.id)
+                            ? "Ulduzu sil"
+                            : "Ulduzla"
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (isDraft) void deleteDraft(mailItem.id);
+                        else toggleStar(mailItem.id);
+                      }}
+                    >
+                      {isDraft ? (
+                        <Trash2 size={17} />
+                      ) : (
+                        <Star
+                          size={18}
+                          fill={
+                            starred.includes(mailItem.id)
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      )}
+                    </button>
+                    <div className="webmail-sender">{initials(sender)}</div>
+                    <div className="mail-row-copy">
+                      <div className="mail-row-meta">
+                        <b>
+                          {isDraft
+                            ? mailItem.to.join(", ") || "Alıcı yoxdur"
+                            : displayName(sender)}
+                        </b>
+                        <time>{shortDate(mailItem.created_at)}</time>
+                      </div>
+                      <h3>{mailItem.subject || "Mövzusuz"}</h3>
+                      <p>
+                        {isDraft ? (
+                          "Qaralama"
+                        ) : isSent ? (
+                          <>
+                            <span
+                              className={`delivery-dot ${(mailItem as Outgoing).last_event}`}
+                            />
+                            {statusLabel((mailItem as Outgoing).last_event)}
+                          </>
+                        ) : (
+                          <>
+                            {stripAddress(mailItem.from)}
+                            {"attachments" in mailItem &&
+                            mailItem.attachments.length ? (
+                              <>
+                                <span> · </span>
+                                <Paperclip size={12} /> Əlavə fayl
+                              </>
+                            ) : null}
+                          </>
+                        )}
+                      </p>
                     </div>
-                    <h3>{m.subject || "Mövzusuz"}</h3>
-                    <p>
-                      {folder === "sent"
-                        ? `Status: ${(m as Outgoing).last_event}`
-                        : `${m.to.join(", ")}${"attachments" in m && m.attachments?.length ? " · Əlavə fayl" : ""}`}
-                    </p>
-                  </div>
-                </article>
-              ))
+                  </article>
+                );
+              })
             ) : (
               <div className="webmail-none">
-                <i>✓</i>
-                <h2>Burada məktub yoxdur</h2>
+                <i>
+                  {query || filter !== "all" ? (
+                    <Search size={25} />
+                  ) : (
+                    <Check size={25} />
+                  )}
+                </i>
+                <h2>
+                  {query || filter !== "all"
+                    ? "Nəticə tapılmadı"
+                    : "Hər şey qaydasındadır"}
+                </h2>
                 <p>
-                  {query
-                    ? "Axtarışa uyğun nəticə tapılmadı."
-                    : "Bu qovluq hazırda boşdur."}
+                  {query || filter !== "all"
+                    ? "Axtarışı və ya filtrləri dəyişərək yenidən yoxlayın."
+                    : "Bu qovluqda məktub yoxdur."}
                 </p>
+                {filter !== "all" ? (
+                  <button onClick={() => setFilter("all")}>
+                    Filtri təmizlə
+                  </button>
+                ) : null}
               </div>
             )}
           </section>
-          <section className="webmail-reader">
+
+          <section className="webmail-reader" aria-label="Məktub oxuma paneli">
             {selected ? (
-              <>
-                {detail ? (
-                  <>
-                    <div className="reader-head">
-                      <div>
-                        <small>{detail.to.join(", ")}</small>
-                        <h2>{detail.subject || "Mövzusuz"}</h2>
-                      </div>
-                      <div>
+              loadingDetail && !detail ? (
+                <div className="reader-loading">
+                  <span />
+                  <p>Məktub açılır...</p>
+                </div>
+              ) : detail ? (
+                <>
+                  <div className="reader-mobile-bar">
+                    <IconButton
+                      label="Siyahıya qayıt"
+                      onClick={() => {
+                        setSelected(null);
+                        setDetail(null);
+                      }}
+                    >
+                      <ArrowLeft size={20} />
+                    </IconButton>
+                    <span>Məktuba qayıt</span>
+                  </div>
+                  <div className="reader-head">
+                    <div>
+                      <small>{folderMeta[folder].label}</small>
+                      <h2>{detail.subject || "Mövzusuz"}</h2>
+                    </div>
+                    <div className="reader-tools">
+                      <IconButton
+                        label={
+                          folder === "archive" ||
+                          folder === "trash" ||
+                          folder === "spam"
+                            ? "Gələnlərə qaytar"
+                            : "Arxivlə"
+                        }
+                        onClick={() =>
+                          moveMessages(
+                            [detail.id],
+                            folder === "archive" ||
+                              folder === "trash" ||
+                              folder === "spam"
+                              ? "inbox"
+                              : "archive",
+                          )
+                        }
+                      >
                         {folder === "archive" ||
                         folder === "trash" ||
                         folder === "spam" ? (
-                          <button
-                            title="Gələnlərə qaytar"
-                            onClick={() => moveMessages([detail.id], "inbox")}
-                          >
-                            ↩
-                          </button>
+                          <Inbox size={18} />
                         ) : (
-                          <button
-                            title="Arxivlə"
-                            onClick={() => moveMessages([detail.id], "archive")}
-                          >
-                            ▱
-                          </button>
+                          <Archive size={18} />
                         )}
-                        {folder !== "spam" ? (
-                          <button
-                            title="Spam kimi işarələ"
-                            onClick={() => moveMessages([detail.id], "spam")}
-                          >
-                            !
-                          </button>
-                        ) : null}
-                        {folder !== "trash" ? (
-                          <button
-                            title="Zibilə at"
-                            onClick={() => moveMessages([detail.id], "trash")}
-                          >
-                            ⌫
-                          </button>
-                        ) : null}
-                        <button
-                          aria-label="Ulduzla"
-                          onClick={() => toggleStar(detail.id)}
+                      </IconButton>
+                      {folder !== "sent" ? (
+                        <IconButton
+                          label={
+                            stateFor(detail.id)?.is_read
+                              ? "Oxunmamış et"
+                              : "Oxunmuş et"
+                          }
+                          onClick={() =>
+                            markRead(
+                              [detail.id],
+                              !(stateFor(detail.id)?.is_read ?? true),
+                            )
+                          }
                         >
-                          {starred.includes(detail.id) ? "★" : "☆"}
-                        </button>
+                          {stateFor(detail.id)?.is_read ? (
+                            <Mail size={18} />
+                          ) : (
+                            <MailOpen size={18} />
+                          )}
+                        </IconButton>
+                      ) : null}
+                      {folder !== "spam" && folder !== "sent" ? (
+                        <IconButton
+                          label="Spam kimi işarələ"
+                          onClick={() => moveMessages([detail.id], "spam")}
+                        >
+                          <CircleAlert size={18} />
+                        </IconButton>
+                      ) : null}
+                      {folder !== "trash" && folder !== "sent" ? (
+                        <IconButton
+                          label="Zibilə köçür"
+                          onClick={() => moveMessages([detail.id], "trash")}
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      ) : null}
+                      <IconButton
+                        label={
+                          starred.includes(detail.id) ? "Ulduzu sil" : "Ulduzla"
+                        }
+                        active={starred.includes(detail.id)}
+                        onClick={() => toggleStar(detail.id)}
+                      >
+                        <Star
+                          size={18}
+                          fill={
+                            starred.includes(detail.id)
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      </IconButton>
+                      <div className="reader-nav">
+                        <IconButton
+                          label="Əvvəlki məktub"
+                          disabled={selectedIndex <= 0}
+                          onClick={() =>
+                            selectedIndex > 0 &&
+                            openMessage(list[selectedIndex - 1].id)
+                          }
+                        >
+                          <ChevronLeft size={18} />
+                        </IconButton>
+                        <IconButton
+                          label="Növbəti məktub"
+                          disabled={
+                            selectedIndex < 0 ||
+                            selectedIndex >= list.length - 1
+                          }
+                          onClick={() =>
+                            selectedIndex >= 0 &&
+                            selectedIndex < list.length - 1 &&
+                            openMessage(list[selectedIndex + 1].id)
+                          }
+                        >
+                          <ChevronRight size={18} />
+                        </IconButton>
                       </div>
+                      <IconButton label="Çap et" onClick={() => window.print()}>
+                        <Printer size={18} />
+                      </IconButton>
                     </div>
-                    <div className="reader-from">
-                      <i>{detail.from[0]?.toUpperCase()}</i>
-                      <div>
-                        <b>{detail.from}</b>
-                        <span>kimə: {detail.to.join(", ")}</span>
-                      </div>
-                      <time>{fullDate(detail.created_at)}</time>
+                  </div>
+                  <div className="reader-from">
+                    <i>{initials(detail.from)}</i>
+                    <div>
+                      <b>{displayName(detail.from)}</b>
+                      <span>{stripAddress(detail.from)}</span>
+                      <details>
+                        <summary>kimə: {detail.to.join(", ")}</summary>
+                        <dl>
+                          <dt>Göndərən</dt>
+                          <dd>{detail.from}</dd>
+                          <dt>Kimə</dt>
+                          <dd>{detail.to.join(", ")}</dd>
+                          {detail.cc?.length ? (
+                            <>
+                              <dt>CC</dt>
+                              <dd>{detail.cc.join(", ")}</dd>
+                            </>
+                          ) : null}
+                          <dt>Tarix</dt>
+                          <dd>{fullDate(detail.created_at)}</dd>
+                        </dl>
+                      </details>
                     </div>
-                    <div className="reader-body">
-                      {thread.length > 1 ? (
-                        <div className="reader-thread">
+                    <time>{fullDate(detail.created_at)}</time>
+                    <IconButton
+                      label="Cavabla"
+                      onClick={() =>
+                        openComposer({
+                          to: detail.reply_to?.[0] || stripAddress(detail.from),
+                          subject: `Re: ${detail.subject}`,
+                        })
+                      }
+                    >
+                      <Reply size={18} />
+                    </IconButton>
+                    <IconButton label="Digər əməliyyatlar">
+                      <MoreHorizontal size={19} />
+                    </IconButton>
+                  </div>
+                  <div className="reader-body">
+                    {thread.length > 1 ? (
+                      <div className="reader-thread">
+                        <div>
                           <b>{thread.length} məktubluq yazışma</b>
-                          {thread.slice(0, -1).map((item) => (
+                          <span>Əvvəlki məktubları göstərmək üçün açın</span>
+                        </div>
+                        {thread
+                          .filter((item) => item.id !== detail.id)
+                          .map((item) => (
                             <details key={item.id}>
                               <summary>
-                                {item.from} · {shortDate(item.created_at)}
+                                <span>{initials(item.from)}</span>
+                                <b>{displayName(item.from)}</b>
+                                <time>{shortDate(item.created_at)}</time>
+                                <ChevronDown size={16} />
                               </summary>
-                              <p>{item.text || "HTML məktub"}</p>
+                              <div>{item.text || "HTML formatlı məktub"}</div>
                             </details>
                           ))}
-                        </div>
-                      ) : null}
-                      {detail.html ? (
-                        <iframe
-                          className="reader-html"
-                          title="Məktub məzmunu"
-                          sandbox=""
-                          srcDoc={detail.html}
-                        />
-                      ) : detail.text ? (
-                        <p>{detail.text}</p>
-                      ) : (
-                        <p className="reader-muted">
-                          Bu məktubun mətn versiyası yoxdur.
-                        </p>
-                      )}
-                    </div>
-                    {detail.attachments.length ? (
-                      <div className="reader-files">
-                        {detail.attachments.map((f) => (
+                      </div>
+                    ) : null}
+                    {detail.html ? (
+                      <iframe
+                        className="reader-html"
+                        title="Məktub məzmunu"
+                        sandbox=""
+                        srcDoc={detail.html}
+                      />
+                    ) : detail.text ? (
+                      <p className="reader-text">{detail.text}</p>
+                    ) : (
+                      <p className="reader-muted">
+                        Bu məktubun mətn versiyası yoxdur.
+                      </p>
+                    )}
+                  </div>
+                  {detail.attachments.length ? (
+                    <div className="reader-files">
+                      <div className="reader-files-title">
+                        <Paperclip size={17} />
+                        <b>{detail.attachments.length} əlavə</b>
+                      </div>
+                      <div>
+                        {detail.attachments.map((file) => (
                           <a
-                            key={f.id}
-                            href={f.download_url || "#"}
+                            key={file.id}
+                            href={file.download_url || "#"}
                             target="_blank"
+                            rel="noreferrer"
                           >
-                            <i>▧</i>
+                            <i>
+                              <FileText size={20} />
+                            </i>
                             <span>
-                              <b>{f.filename || "Fayl"}</b>
-                              <small>{Math.ceil(f.size / 1024)} KB</small>
+                              <b>{file.filename || "Fayl"}</b>
+                              <small>
+                                {Math.max(1, Math.ceil(file.size / 1024))} KB
+                              </small>
                             </span>
-                            ↓
+                            <Download size={17} />
                           </a>
                         ))}
                       </div>
-                    ) : null}
-                    <div className="reader-actions">
-                      <button
-                        onClick={() =>
-                          openComposer({
-                            to:
-                              detail.reply_to?.[0] ||
-                              detail.from.replace(/^.*<|>.*$/g, ""),
-                            subject: `Re: ${detail.subject}`,
-                          })
-                        }
-                      >
-                        ↩ Cavabla
-                      </button>
-                      <button
-                        onClick={() =>
-                          openComposer({
-                            subject: `Fwd: ${detail.subject}`,
-                            message: detail.text || "",
-                          })
-                        }
-                      >
-                        ➦ Yönləndir
-                      </button>
                     </div>
-                  </>
-                ) : (
-                  <div className="reader-loading">Məktub açılır...</div>
-                )}
-              </>
+                  ) : null}
+                  <div className="reader-actions">
+                    <button
+                      onClick={() =>
+                        openComposer({
+                          to: detail.reply_to?.[0] || stripAddress(detail.from),
+                          subject: `Re: ${detail.subject}`,
+                        })
+                      }
+                    >
+                      <Reply size={17} />
+                      Cavabla
+                    </button>
+                    <button
+                      onClick={() =>
+                        openComposer({
+                          to: [...detail.to, ...(detail.cc || [])]
+                            .filter(
+                              (address) =>
+                                stripAddress(address) !== accountEmail,
+                            )
+                            .join(", "),
+                          cc: stripAddress(detail.from),
+                          subject: `Re: ${detail.subject}`,
+                        })
+                      }
+                    >
+                      <ReplyAll size={17} />
+                      Hamısına cavab ver
+                    </button>
+                    <button
+                      onClick={() =>
+                        openComposer({
+                          subject: `Fwd: ${detail.subject}`,
+                          message: `\n\n---------- Yönləndirilmiş məktub ----------\nKimdən: ${detail.from}\nTarix: ${fullDate(detail.created_at)}\nMövzu: ${detail.subject}\nKimə: ${detail.to.join(", ")}\n\n${detail.text || ""}`,
+                        })
+                      }
+                    >
+                      <Forward size={17} />
+                      Yönləndir
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="reader-loading">
+                  <span />
+                  <p>Məktub açılır...</p>
+                </div>
+              )
             ) : (
               <div className="reader-placeholder">
-                <i>✉</i>
-                <h2>Məktub seçin</h2>
-                <p>Oxumaq üçün soldakı siyahıdan bir məktub seçin.</p>
+                <i>
+                  <Mail size={27} />
+                </i>
+                <h2>Oxumağa hazırsınız</h2>
+                <p>Məzmunu burada görmək üçün siyahıdan məktub seçin.</p>
+                <span>
+                  <kbd>↑</kbd>
+                  <kbd>↓</kbd> ilə məktublar arasında keçin
+                </span>
               </div>
             )}
           </section>
         </div>
       </section>
+
       {compose ? (
-        <div className="compose-modal">
+        <div
+          className={`compose-modal${composeMinimized ? " is-minimized" : ""}`}
+        >
           <div className="compose-window">
-            <button className="compose-close" onClick={() => setCompose(false)}>
-              ×
-            </button>
-            <ComposeForm
-              initial={reply}
-              onSent={() => {
-                setCompose(false);
-                location.reload();
-              }}
-            />
+            <div className="compose-titlebar">
+              <div>
+                <span className="compose-status-dot" />
+                <b>{reply.id ? "Qaralamanı redaktə et" : "Yeni məktub"}</b>
+              </div>
+              <div>
+                <IconButton
+                  label={composeMinimized ? "Böyüt" : "Kiçilt"}
+                  onClick={() => setComposeMinimized((value) => !value)}
+                >
+                  <span className="minimize-icon" />
+                </IconButton>
+                <IconButton label="Bağla" onClick={() => setCompose(false)}>
+                  <X size={18} />
+                </IconButton>
+              </div>
+            </div>
+            {!composeMinimized ? (
+              <ComposeForm
+                initial={reply}
+                onSent={() => {
+                  setCompose(false);
+                  notify("Məktub uğurla göndərildi");
+                  window.setTimeout(() => location.reload(), 800);
+                }}
+                onDiscard={(draftId) => {
+                  if (draftId)
+                    setDrafts((items) =>
+                      items.filter((item) => item.id !== draftId),
+                    );
+                  setCompose(false);
+                  notify("Qaralama silindi");
+                }}
+              />
+            ) : null}
           </div>
+        </div>
+      ) : null}
+      {toast ? (
+        <div className="mail-toast" role="status">
+          <Check size={17} />
+          {toast}
         </div>
       ) : null}
     </main>

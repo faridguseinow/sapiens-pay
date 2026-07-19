@@ -27,7 +27,10 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/mail/login");
 
-  const to = String(formData.get("to") ?? "").trim();
+  const to = String(formData.get("to") ?? "")
+    .split(/[;,]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
   const subject = String(formData.get("subject") ?? "").trim();
   const text = String(formData.get("message") ?? "").trim();
   const cc = String(formData.get("cc") ?? "")
@@ -42,7 +45,15 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
   const files = formData
     .getAll("attachments")
     .filter((item): item is File => item instanceof File && item.size > 0);
-  if (!to || !subject || !text || !/^\S+@\S+\.\S+$/.test(to)) {
+  const isEmail = (value: string) => /^\S+@\S+\.\S+$/.test(value);
+  if (
+    !to.length ||
+    !subject ||
+    !text ||
+    !to.every(isEmail) ||
+    !cc.every(isEmail) ||
+    !bcc.every(isEmail)
+  ) {
     return { error: "Alıcı, mövzu və mesajı düzgün doldurun." };
   }
   let resend;
@@ -84,7 +95,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
             .trim()
             .toLocaleLowerCase() || sent.id,
         sender: getMailFrom(),
-        recipients: [to],
+        recipients: to,
         cc,
         bcc,
         subject,
