@@ -50,7 +50,11 @@ function done(message: string) {
 }
 
 function failed() {
-  redirect("/admin/mail?error=Əməliyyat tamamlanmadı. Məlumatları yoxlayın.");
+  redirect(
+    `/admin/mail?error=${encodeURIComponent(
+      "Əməliyyat tamamlanmadı. Məlumatları yoxlayın.",
+    )}`,
+  );
 }
 
 export async function createMailbox(formData: FormData) {
