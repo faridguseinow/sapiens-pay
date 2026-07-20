@@ -5,10 +5,14 @@ import { listImapFolders } from "@/lib/mail/imap";
 import { verifySmtpConnection } from "@/lib/mail/smtp";
 import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims)
+  const cronSecret = process.env.CRON_SECRET;
+  const monitorAuthorized =
+    Boolean(cronSecret) &&
+    request.headers.get("authorization") === `Bearer ${cronSecret}`;
+  if (!data?.claims && !monitorAuthorized)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   if (isSelfHostedMailEnabled()) {
     try {
