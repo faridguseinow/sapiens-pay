@@ -19,6 +19,14 @@ apt-get update
 apt-get -y upgrade
 apt-get install -y ca-certificates curl git jq openssl chrony unattended-upgrades
 
+if ! swapon --show=NAME --noheadings | grep -q .; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >>/etc/fstab
+fi
+
 cat >/etc/sysctl.d/99-mailcow.conf <<'EOF'
 fs.inotify.max_user_watches=524288
 fs.inotify.max_user_instances=512
@@ -35,4 +43,3 @@ chmod 600 /root/.ssh/authorized_keys 2>/dev/null || true
 
 echo "Preflight complete for ${HOSTNAME_FQDN}."
 echo "Next: verify PTR, ports, IP reputation and install Mailcow."
-
