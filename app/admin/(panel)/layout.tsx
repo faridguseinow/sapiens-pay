@@ -54,6 +54,10 @@ export default async function AdminPanelLayout({
             <span>✦</span>
             Bloq
           </Link>
+          <Link href="/admin/mail">
+            <span>✉</span>
+            Mail ünvanları
+          </Link>
         </nav>
         <div className="admin-sidebar__bottom">
           <Link href="/az" target="_blank" aria-label="Sayta bax" title="Sayta bax">

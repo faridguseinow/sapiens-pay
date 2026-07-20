@@ -24,10 +24,39 @@ async function mailcowRequest<T>(path: string, init?: RequestInit): Promise<T> {
 export type MailcowMailbox = {
   username: string;
   name: string;
-  active: number;
+  active: number | string;
   quota: number;
   quota_used?: number;
+  messages?: number;
+  domain?: string;
+  local_part?: string;
 };
+
+type MailcowOperationResult = {
+  type: "success" | "danger" | "error";
+  msg: string | string[];
+};
+
+function operation(
+  path: string,
+  body: unknown,
+): Promise<MailcowOperationResult[]> {
+  return mailcowRequest<MailcowOperationResult[]>(path, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function assertMailcowSuccess(results: MailcowOperationResult[]) {
+  const failure = results.find((result) => result.type !== "success");
+  if (failure) {
+    const message = Array.isArray(failure.msg)
+      ? failure.msg.join(": ")
+      : failure.msg;
+    throw new Error(message || "Mailcow əməliyyatı tamamlanmadı.");
+  }
+  return results;
+}
 
 export function listMailcowMailboxes() {
   return mailcowRequest<MailcowMailbox[]>("/get/mailbox/all");
@@ -40,9 +69,7 @@ export function createMailcowMailbox(input: {
   password: string;
   quotaMb?: number;
 }) {
-  return mailcowRequest<Array<{ type: string; msg: string }>>("/add/mailbox", {
-    method: "POST",
-    body: JSON.stringify({
+  return operation("/add/mailbox", {
       local_part: input.localPart,
       domain: input.domain || "sapiens-pay.com",
       name: input.displayName,
@@ -53,13 +80,30 @@ export function createMailcowMailbox(input: {
       force_pw_update: "1",
       tls_enforce_in: "1",
       tls_enforce_out: "1",
-    }),
   });
 }
 
-export function deactivateMailcowMailbox(username: string) {
-  return mailcowRequest<Array<{ type: string; msg: string }>>("/edit/mailbox", {
-    method: "POST",
-    body: JSON.stringify({ items: [username], attr: { active: "0" } }),
+export function setMailcowMailboxActive(username: string, active: boolean) {
+  return operation("/edit/mailbox", {
+    items: [username],
+    attr: { active: active ? "1" : "0" },
   });
+}
+
+export function changeMailcowMailboxPassword(
+  username: string,
+  password: string,
+) {
+  return operation("/edit/mailbox", {
+    items: [username],
+    attr: {
+      password,
+      password2: password,
+      force_pw_update: "1",
+    },
+  });
+}
+
+export function deleteMailcowMailbox(username: string) {
+  return operation("/delete/mailbox", [username]);
 }
