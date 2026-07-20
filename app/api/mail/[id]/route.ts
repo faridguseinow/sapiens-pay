@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
+import { getImapMessage, parseImapMessageId } from "@/lib/mail/imap";
+import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
 
 export async function GET(
   request: Request,
@@ -10,6 +12,31 @@ export async function GET(
   if (!auth?.claims)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  if (isSelfHostedMailEnabled()) {
+    const parsedId = parseImapMessageId(id);
+    if (!parsedId)
+      return Response.json({ error: "Məktub tapılmadı" }, { status: 404 });
+    const message = await getImapMessage(parsedId.mailbox, parsedId.uid);
+    if (!message)
+      return Response.json({ error: "Məktub tapılmadı" }, { status: 404 });
+    return Response.json({
+      id: message.id,
+      from: message.from,
+      to: message.to,
+      subject: message.subject,
+      created_at: message.createdAt,
+      text: message.text,
+      html: message.html,
+      cc: message.cc,
+      reply_to: message.replyTo,
+      attachments: message.attachments.map((file, index) => ({
+        id: String(index),
+        filename: file.filename,
+        size: file.size,
+        download_url: `/api/mail/attachment?message=${encodeURIComponent(message.id)}&index=${index}`,
+      })),
+    });
+  }
   const resend = getResend();
   if (new URL(request.url).searchParams.get("direction") === "sent") {
     const sent = await resend.emails.get(id);

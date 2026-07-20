@@ -1,4 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  moveImapMessages,
+  parseImapMessageId,
+  updateImapFlags,
+} from "@/lib/mail/imap";
+import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -17,6 +23,27 @@ export async function POST(request: Request) {
       !["inbox", "archive", "trash", "spam"].includes(body.folder))
   )
     return Response.json({ error: "Invalid" }, { status: 400 });
+  if (isSelfHostedMailEnabled()) {
+    const parsed = parseImapMessageId(body.messageId);
+    if (!parsed)
+      return Response.json({ error: "Invalid" }, { status: 400 });
+    await updateImapFlags(parsed.mailbox, [parsed.uid], {
+      read: body.isRead,
+      starred: body.isStarred,
+    });
+    if (body.folder) {
+      const destinations: Record<string, string> = {
+        inbox: "INBOX",
+        archive: "Archive",
+        trash: "Trash",
+        spam: "Junk",
+      };
+      const destination = destinations[body.folder];
+      if (destination && destination !== parsed.mailbox)
+        await moveImapMessages(parsed.mailbox, [parsed.uid], destination);
+    }
+    return Response.json({ ok: true });
+  }
   const payload = {
     user_id: auth.user.id,
     message_id: body.messageId,

@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMailFrom, getResend } from "@/lib/resend";
+import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
+import { sendSmtpMail } from "@/lib/mail/smtp";
 
 export type MailActionState = { error?: string; success?: string } | undefined;
 
@@ -56,17 +58,11 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
   ) {
     return { error: "Alıcı, mövzu və mesajı düzgün doldurun." };
   }
-  let resend;
-  try {
-    resend = getResend();
-  } catch {
-    return { error: "Mail xidməti hələ qoşulmayıb." };
-  }
   if (
-    files.some((file) => file.size > 10 * 1024 * 1024) ||
-    files.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024
+    files.some((file) => file.size > 3 * 1024 * 1024) ||
+    files.reduce((sum, file) => sum + file.size, 0) > 3 * 1024 * 1024
   ) {
-    return { error: "Fayllar ümumilikdə 20 MB-dan böyük ola bilməz." };
+    return { error: "Fayllar ümumilikdə 3 MB-dan böyük ola bilməz." };
   }
   const attachments = await Promise.all(
     files.map(async (file) => ({
@@ -74,14 +70,26 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
       content: Buffer.from(await file.arrayBuffer()),
     })),
   );
+  if (isSelfHostedMailEnabled()) {
+    try {
+      await sendSmtpMail({ to, cc, bcc, subject, text, attachments });
+      if (draftId)
+        await supabase.from("mail_drafts").delete().eq("id", draftId);
+      return { success: "Məktub göndərildi." };
+    } catch (error) {
+      return {
+        error: `Məktub göndərilmədi: ${error instanceof Error ? error.message : "Naməlum xəta"}`,
+      };
+    }
+  }
+  let resend;
+  try {
+    resend = getResend();
+  } catch {
+    return { error: "Mail xidməti hələ qoşulmayıb." };
+  }
   const { data: sent, error } = await resend.emails.send({
-    from: getMailFrom(),
-    to,
-    cc,
-    bcc,
-    subject,
-    text,
-    attachments,
+    from: getMailFrom(), to, cc, bcc, subject, text, attachments,
   });
   if (error) return { error: `Məktub göndərilmədi: ${error.message}` };
   if (sent?.id) {

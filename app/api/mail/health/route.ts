@@ -1,12 +1,39 @@
 import { createClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { createHash } from "node:crypto";
+import { listImapFolders } from "@/lib/mail/imap";
+import { verifySmtpConnection } from "@/lib/mail/smtp";
+import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
 
 export async function GET() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (isSelfHostedMailEnabled()) {
+    try {
+      const [smtp, folders] = await Promise.all([
+        verifySmtpConnection(),
+        listImapFolders(),
+      ]);
+      return Response.json({
+        backend: "self-hosted",
+        smtpOk: smtp,
+        imapOk: true,
+        folders: folders.map((folder) => folder.path),
+      });
+    } catch (error) {
+      return Response.json(
+        {
+          backend: "self-hosted",
+          smtpOk: false,
+          imapOk: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 503 },
+      );
+    }
+  }
   const raw = process.env.RESEND_API_KEY ?? "";
   const normalized = raw
     .trim()

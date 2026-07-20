@@ -53,6 +53,15 @@ const addressList = (
 const stableId = (mailbox: string, uid: number) =>
   `${encodeURIComponent(mailbox)}:${uid}`;
 
+export function parseImapMessageId(id: string) {
+  const separator = id.lastIndexOf(":");
+  if (separator < 1) return null;
+  const mailbox = decodeURIComponent(id.slice(0, separator));
+  const uid = Number(id.slice(separator + 1));
+  if (!mailbox || !Number.isSafeInteger(uid) || uid < 1) return null;
+  return { mailbox, uid };
+}
+
 function createImapClient() {
   const config = getSelfHostedMailConfig();
   return new ImapFlow({
@@ -269,5 +278,15 @@ export async function moveImapMessages(
     } finally {
       lock.release();
     }
+  });
+}
+
+export async function appendImapMessage(
+  mailbox: string,
+  source: Buffer,
+  flags: string[] = ["\\Seen"],
+) {
+  return withImap(async (client) => {
+    await client.append(mailbox, source, flags);
   });
 }
