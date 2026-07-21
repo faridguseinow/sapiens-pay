@@ -7,6 +7,150 @@
   --line: #e9e9e9;
 }
 
+/* Sapiens Mail professional settings */
+.mail-settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(13, 20, 14, 0.58);
+  backdrop-filter: blur(5px);
+}
+.mail-settings {
+  width: min(100%, 590px);
+  max-height: min(90vh, 760px);
+  overflow: auto;
+  padding: 1.6rem;
+  border: 1px solid #dfe5d9;
+  border-radius: 22px;
+  background: #fff;
+  color: #172018;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.28);
+}
+.mail-settings > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+}
+.mail-settings > header small {
+  color: #6f8f36;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+.mail-settings > header h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.55rem;
+}
+.mail-settings-account {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1.3rem;
+  padding: 0.9rem;
+  border: 1px solid #e2e7dd;
+  border-radius: 14px;
+  background: #f7f9f4;
+}
+.mail-settings-account > i {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #e9f9cc;
+  color: #45641e;
+}
+.mail-settings-account > span {
+  display: grid;
+}
+.mail-settings-account small,
+.mail-settings > label > small {
+  color: #7f877c;
+  font-size: 0.73rem;
+}
+.mail-settings > label:not(.mail-settings-toggle) {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  color: #394137;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.mail-settings input[type="text"],
+.mail-settings > label > input:not([type]),
+.mail-settings textarea {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #dce2d7;
+  border-radius: 11px;
+  background: #fbfcfa;
+  color: #172018;
+  font: inherit;
+  outline: none;
+}
+.mail-settings input:focus,
+.mail-settings textarea:focus {
+  border-color: #93c33b;
+  box-shadow: 0 0 0 3px rgba(184, 243, 74, 0.2);
+}
+.mail-settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid #e1e6dc;
+  border-radius: 12px;
+}
+.mail-settings-toggle > span {
+  display: grid;
+  grid-template-columns: 25px 1fr;
+  align-items: center;
+}
+.mail-settings-toggle > span svg { grid-row: 1 / 3; }
+.mail-settings-toggle > span small { color: #7f877c; font-size: 0.72rem; }
+.mail-settings-toggle > input {
+  width: 42px;
+  height: 23px;
+  accent-color: #7daf25;
+}
+.mail-settings > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e7ebe3;
+}
+.mail-settings > footer button {
+  min-height: 40px;
+  padding: 0 1rem;
+  border: 1px solid #dce2d7;
+  border-radius: 10px;
+  background: #fff;
+  color: #263023;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mail-settings > footer button.primary {
+  border-color: #a5dc3d;
+  background: #b8f34a;
+}
+@media (max-width: 620px) {
+  .mail-settings-backdrop { place-items: end center; padding: 0; }
+  .mail-settings {
+    max-height: 94vh;
+    border-radius: 20px 20px 0 0;
+    padding: 1.2rem;
+  }
+}
+
 *,
 *::before,
 *::after {

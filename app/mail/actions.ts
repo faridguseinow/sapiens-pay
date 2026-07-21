@@ -38,6 +38,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
     .filter(Boolean);
   const subject = String(formData.get("subject") ?? "").trim();
   const text = String(formData.get("message") ?? "").trim();
+  const fromName = String(formData.get("displayName") ?? "").trim().slice(0, 120);
   const cc = String(formData.get("cc") ?? "")
     .split(",")
     .map((value) => value.trim())
@@ -62,10 +63,10 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
     return { error: "Alıcı, mövzu və mesajı düzgün doldurun." };
   }
   if (
-    files.some((file) => file.size > 3 * 1024 * 1024) ||
-    files.reduce((sum, file) => sum + file.size, 0) > 3 * 1024 * 1024
+    files.some((file) => file.size > 20 * 1024 * 1024) ||
+    files.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024
   ) {
-    return { error: "Fayllar ümumilikdə 3 MB-dan böyük ola bilməz." };
+    return { error: "Fayllar ümumilikdə 20 MB-dan böyük ola bilməz." };
   }
   const attachments = await Promise.all(
     files.map(async (file) => ({
@@ -74,7 +75,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
     })),
   );
   try {
-    await sendSmtpMail({ to, cc, bcc, subject, text, attachments }, mailSession);
+    await sendSmtpMail({ to, cc, bcc, subject, text, attachments, fromName }, mailSession);
     const draft = draftId ? parseImapMessageId(draftId) : null;
     if (draft?.mailbox === "Drafts")
       await deleteImapMessages("Drafts", [draft.uid], mailSession);

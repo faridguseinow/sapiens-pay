@@ -34,12 +34,13 @@ export async function sendSmtpMail(input: {
   inReplyTo?: string;
   references?: string[];
   attachments?: SmtpAttachment[];
+  fromName?: string;
 }, credentials?: MailCredentials) {
   const config = getSelfHostedMailConfig();
   const mailbox = credentials?.email || config.mailbox;
   const password = credentials?.password || config.password;
   const message = {
-    from: mailbox,
+    from: input.fromName ? { name: input.fromName, address: mailbox } : mailbox,
     to: input.to,
     cc: input.cc,
     bcc: input.bcc,

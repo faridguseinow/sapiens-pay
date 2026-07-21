@@ -3,6 +3,7 @@
 import {
   Archive,
   ArrowLeft,
+  Bell,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -32,6 +33,7 @@ import {
   Sparkles,
   Star,
   Trash2,
+  UserRound,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -75,6 +77,11 @@ type Folder =
   "inbox" | "starred" | "sent" | "drafts" | "archive" | "spam" | "trash";
 type FilterMode = "all" | "unread" | "starred" | "attachments";
 type Density = "comfortable" | "compact";
+type MailPreferences = {
+  displayName: string;
+  signature: string;
+  notifications: boolean;
+};
 
 const folderMeta = {
   inbox: { label: "Gələnlər", Icon: Inbox },
@@ -239,7 +246,23 @@ export function MailClient({
   const [density, setDensity] = useState<Density>("comfortable");
   const [toast, setToast] = useState("");
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preferences, setPreferences] = useState<MailPreferences>({
+    displayName: "Sapiens Pay",
+    signature: "",
+    notifications: false,
+  });
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const contacts = useMemo(() => {
+    const values = [
+      ...incoming.flatMap((item) => [item.from, ...item.to]),
+      ...outgoing.flatMap((item) => [item.from, ...item.to]),
+    ];
+    return [...new Set(values.map(stripAddress).filter((item) => item && item !== accountEmail))]
+      .sort((a, b) => a.localeCompare(b))
+      .slice(0, 250);
+  }, [accountEmail, incoming, outgoing]);
 
   const stateFor = useCallback(
     (id: string) => states.find((item) => item.message_id === id),
@@ -305,12 +328,39 @@ export function MailClient({
       (id) => !initialStates.some((state) => state.message_id === id),
     );
     const savedDensity = localStorage.getItem("sp-mail-density");
+    const savedPreferences = localStorage.getItem(`sp-mail-preferences:${accountEmail}`);
     const timer = window.setTimeout(() => {
       if (missing.length) patchStates(missing, { is_starred: true });
       if (savedDensity === "compact") setDensity("compact");
+      if (savedPreferences) {
+        try {
+          setPreferences((current) => ({ ...current, ...JSON.parse(savedPreferences) }));
+        } catch {}
+      }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [initialStates, patchStates]);
+  }, [accountEmail, initialStates, patchStates]);
+
+  useEffect(() => {
+    if (!preferences.notifications || !unreadCount || !("Notification" in window)) return;
+    if (Notification.permission === "granted" && document.visibilityState === "hidden") {
+      new Notification("Sapiens Mail", {
+        body: `${unreadCount} oxunmamış məktubunuz var.`,
+        icon: "/favicon.ico",
+      });
+    }
+  }, [preferences.notifications, unreadCount]);
+
+  const savePreferences = async (next: MailPreferences) => {
+    if (next.notifications && "Notification" in window && Notification.permission === "default") {
+      const permission = await Notification.requestPermission();
+      next = { ...next, notifications: permission === "granted" };
+    }
+    setPreferences(next);
+    localStorage.setItem(`sp-mail-preferences:${accountEmail}`, JSON.stringify(next));
+    setSettingsOpen(false);
+    notify("Poçt parametrləri saxlanıldı");
+  };
 
   const toggleStar = useCallback(
     (id: string) => {
@@ -624,6 +674,9 @@ export function MailClient({
           </label>
           <IconButton label="Yenilə" onClick={() => location.reload()}>
             <RefreshCw size={18} />
+          </IconButton>
+          <IconButton label="Poçt parametrləri" onClick={() => setSettingsOpen(true)}>
+            <Settings2 size={18} />
           </IconButton>
           <div className="webmail-avatar" title={accountEmail}>
             {accountEmail[0]?.toUpperCase()}
@@ -1260,6 +1313,9 @@ export function MailClient({
             {!composeMinimized ? (
               <ComposeForm
                 initial={reply}
+                displayName={preferences.displayName}
+                signature={reply.id ? "" : preferences.signature}
+                contacts={contacts}
                 onSent={() => {
                   setCompose(false);
                   notify("Məktub uğurla göndərildi");
@@ -1278,6 +1334,14 @@ export function MailClient({
           </div>
         </div>
       ) : null}
+      {settingsOpen ? (
+        <MailSettings
+          value={preferences}
+          accountEmail={accountEmail}
+          onClose={() => setSettingsOpen(false)}
+          onSave={savePreferences}
+        />
+      ) : null}
       {toast ? (
         <div className="mail-toast" role="status">
           <Check size={17} />
@@ -1285,5 +1349,75 @@ export function MailClient({
         </div>
       ) : null}
     </main>
+  );
+}
+
+function MailSettings({
+  value,
+  accountEmail,
+  onClose,
+  onSave,
+}: {
+  value: MailPreferences;
+  accountEmail: string;
+  onClose: () => void;
+  onSave: (value: MailPreferences) => void | Promise<void>;
+}) {
+  const [draft, setDraft] = useState(value);
+  return (
+    <div className="mail-settings-backdrop" role="presentation" onMouseDown={onClose}>
+      <section
+        className="mail-settings"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mail-settings-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <div>
+            <small>ŞƏXSİLƏŞDİRMƏ</small>
+            <h2 id="mail-settings-title">Poçt parametrləri</h2>
+          </div>
+          <IconButton label="Bağla" onClick={onClose}><X size={19} /></IconButton>
+        </header>
+        <div className="mail-settings-account">
+          <i><UserRound size={20} /></i>
+          <span><b>{accountEmail}</b><small>Aktiv poçt hesabı</small></span>
+        </div>
+        <label>
+          <span>Göndərən adı</span>
+          <small>Alıcı məktubda bu adı görəcək.</small>
+          <input
+            value={draft.displayName}
+            maxLength={120}
+            onChange={(event) => setDraft({ ...draft, displayName: event.target.value })}
+            placeholder="Məsələn: Sapiens Pay"
+          />
+        </label>
+        <label>
+          <span>Standart imza</span>
+          <small>Yeni məktublara və cavablara avtomatik əlavə olunur.</small>
+          <textarea
+            value={draft.signature}
+            rows={7}
+            maxLength={4000}
+            onChange={(event) => setDraft({ ...draft, signature: event.target.value })}
+            placeholder={"Hörmətlə,\nAd Soyad\nSapiens Pay"}
+          />
+        </label>
+        <label className="mail-settings-toggle">
+          <span><Bell size={18} /><b>Brauzer bildirişləri</b><small>Yeni oxunmamış məktublar barədə xəbər alın.</small></span>
+          <input
+            type="checkbox"
+            checked={draft.notifications}
+            onChange={(event) => setDraft({ ...draft, notifications: event.target.checked })}
+          />
+        </label>
+        <footer>
+          <button type="button" onClick={onClose}>Ləğv et</button>
+          <button type="button" className="primary" onClick={() => void onSave(draft)}>Yadda saxla</button>
+        </footer>
+      </section>
+    </div>
   );
 }

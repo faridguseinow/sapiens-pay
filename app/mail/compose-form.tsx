@@ -36,10 +36,16 @@ const splitRecipients = (value: string) =>
 
 export function ComposeForm({
   initial = {},
+  displayName = "",
+  signature = "",
+  contacts = [],
   onSent,
   onDiscard,
 }: {
   initial?: InitialCompose;
+  displayName?: string;
+  signature?: string;
+  contacts?: string[];
   onSent?: () => void;
   onDiscard?: (draftId?: string) => void;
 }) {
@@ -56,6 +62,9 @@ export function ComposeForm({
     Boolean(initial.cc || initial.bcc),
   );
   const [files, setFiles] = useState<File[]>([]);
+  const initialMessage = initial.message
+    ? `${signature ? `${signature}\n\n` : ""}${initial.message}`
+    : signature;
 
   useEffect(() => {
     if (state?.success) onSent?.();
@@ -123,6 +132,10 @@ export function ComposeForm({
       className="mail-compose"
     >
       <input type="hidden" name="draftId" value={draftId || ""} />
+      <input type="hidden" name="displayName" value={displayName} />
+      <datalist id="mail-contact-suggestions">
+        {contacts.map((contact) => <option key={contact} value={contact} />)}
+      </datalist>
       <div className="compose-address-row">
         <label htmlFor="compose-to">Kimə</label>
         <input
@@ -133,6 +146,7 @@ export function ComposeForm({
           placeholder="Alıcının e-poçt ünvanı"
           autoFocus
           required
+          list="mail-contact-suggestions"
         />
         <button type="button" onClick={() => setShowCopies((value) => !value)}>
           CC / BCC <ChevronDown size={14} />
@@ -148,6 +162,7 @@ export function ComposeForm({
               type="text"
               defaultValue={initial.cc}
               placeholder="Surət göndəriləcək ünvanlar"
+              list="mail-contact-suggestions"
             />
           </div>
           <div className="compose-address-row">
@@ -158,6 +173,7 @@ export function ComposeForm({
               type="text"
               defaultValue={initial.bcc}
               placeholder="Gizli surət ünvanları"
+              list="mail-contact-suggestions"
             />
           </div>
         </div>
@@ -216,7 +232,7 @@ export function ComposeForm({
       <textarea
         ref={messageRef}
         name="message"
-        defaultValue={initial.message}
+        defaultValue={initialMessage}
         rows={15}
         placeholder="Məktubunuzu yazın..."
         aria-label="Məktub mətni"
@@ -271,6 +287,7 @@ export function ComposeForm({
             name="attachments"
             type="file"
             multiple
+            accept="*/*"
             hidden
             onChange={(event) => setFiles(Array.from(event.target.files || []))}
           />
