@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getMailFrom, getResend } from "@/lib/resend";
 import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
 import { sendSmtpMail } from "@/lib/mail/smtp";
+import { verifyImapCredentials } from "@/lib/mail/imap";
+import { clearMailSession, getMailSession, setMailSession } from "@/lib/mail/session";
 
 export type MailActionState = { error?: string; success?: string } | undefined;
 
@@ -12,6 +14,18 @@ export async function mailLogin(_state: MailActionState, formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return { error: "E-poçt və şifrəni daxil edin." };
+  if (isSelfHostedMailEnabled()) {
+    const normalized = email.toLowerCase();
+    if (!normalized.endsWith("@sapiens-pay.com"))
+      return { error: "Yalnız @sapiens-pay.com ünvanı ilə daxil olun." };
+    try {
+      await verifyImapCredentials({ email: normalized, password });
+      await setMailSession({ email: normalized, password });
+    } catch {
+      return { error: "E-poçt və ya şifrə yanlışdır." };
+    }
+    redirect("/mail");
+  }
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: "E-poçt və ya şifrə yanlışdır." };
@@ -19,15 +33,18 @@ export async function mailLogin(_state: MailActionState, formData: FormData) {
 }
 
 export async function mailLogout() {
+  await clearMailSession();
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/mail/login");
 }
 
 export async function sendMail(_state: MailActionState, formData: FormData) {
+  const mailSession = isSelfHostedMailEnabled() ? await getMailSession() : null;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) redirect("/mail/login");
+  if (isSelfHostedMailEnabled() ? !mailSession : !data?.claims)
+    redirect("/mail/login");
 
   const to = String(formData.get("to") ?? "")
     .split(/[;,]/)
@@ -72,9 +89,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
   );
   if (isSelfHostedMailEnabled()) {
     try {
-      await sendSmtpMail({ to, cc, bcc, subject, text, attachments });
-      if (draftId)
-        await supabase.from("mail_drafts").delete().eq("id", draftId);
+      await sendSmtpMail({ to, cc, bcc, subject, text, attachments }, mailSession!);
       return { success: "Məktub göndərildi." };
     } catch (error) {
       return {

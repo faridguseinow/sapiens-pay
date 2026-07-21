@@ -1,14 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
 import { getImapMessage, parseImapMessageId } from "@/lib/mail/imap";
 import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
+import { getMailSession } from "@/lib/mail/session";
 
 const safeFilename = (value: string) =>
   value.replace(/[\r\n"\\/]/g, "_").slice(0, 180) || "attachment";
 
 export async function GET(request: Request) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims)
+  const mailSession = await getMailSession();
+  if (!mailSession)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   if (!isSelfHostedMailEnabled())
     return Response.json({ error: "Not available" }, { status: 404 });
@@ -17,7 +16,7 @@ export async function GET(request: Request) {
   const index = Number(url.searchParams.get("index"));
   if (!parsed || !Number.isSafeInteger(index) || index < 0)
     return Response.json({ error: "Invalid" }, { status: 400 });
-  const message = await getImapMessage(parsed.mailbox, parsed.uid);
+  const message = await getImapMessage(parsed.mailbox, parsed.uid, mailSession);
   const attachment = message?.attachments[index];
   if (!attachment)
     return Response.json({ error: "Fayl tapılmadı" }, { status: 404 });

@@ -3,6 +3,7 @@ import "server-only";
 import nodemailer from "nodemailer";
 import { getSelfHostedMailConfig } from "./self-hosted-config";
 import { appendImapMessage } from "./imap";
+import type { MailCredentials } from "./session";
 
 export type SmtpAttachment = {
   filename: string;
@@ -33,10 +34,12 @@ export async function sendSmtpMail(input: {
   inReplyTo?: string;
   references?: string[];
   attachments?: SmtpAttachment[];
-}) {
+}, credentials?: MailCredentials) {
   const config = getSelfHostedMailConfig();
+  const mailbox = credentials?.email || config.mailbox;
+  const password = credentials?.password || config.password;
   const message = {
-    from: config.mailbox,
+    from: mailbox,
     to: input.to,
     cc: input.cc,
     bcc: input.bcc,
@@ -61,17 +64,17 @@ export async function sendSmtpMail(input: {
     port: config.smtpPort,
     secure: config.smtpPort === 465,
     requireTLS: config.smtpPort !== 465,
-    auth: { user: config.mailbox, pass: config.password },
+    auth: { user: mailbox, pass: password },
     tls: { minVersion: "TLSv1.2", servername: config.hostname },
   });
 
   const result = await transport.sendMail({
     envelope: {
-      from: config.mailbox,
+      from: mailbox,
       to: [...input.to, ...(input.cc || []), ...(input.bcc || [])],
     },
     raw: built.message,
   });
-  await appendImapMessage("Sent", built.message);
+  await appendImapMessage("Sent", built.message, ["\\Seen"], credentials);
   return result;
 }

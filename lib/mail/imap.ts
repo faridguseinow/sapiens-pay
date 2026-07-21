@@ -3,6 +3,7 @@ import "server-only";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { getSelfHostedMailConfig } from "./self-hosted-config";
+import type { MailCredentials } from "./session";
 
 export type ImapFolder = {
   path: string;
@@ -62,20 +63,26 @@ export function parseImapMessageId(id: string) {
   return { mailbox, uid };
 }
 
-function createImapClient() {
+function createImapClient(credentials?: MailCredentials) {
   const config = getSelfHostedMailConfig();
   return new ImapFlow({
     host: config.hostname,
     port: config.imapPort,
     secure: true,
-    auth: { user: config.mailbox, pass: config.password },
+    auth: {
+      user: credentials?.email || config.mailbox,
+      pass: credentials?.password || config.password,
+    },
     logger: false,
     tls: { minVersion: "TLSv1.2", servername: config.hostname },
   });
 }
 
-async function withImap<T>(callback: (client: ImapFlow) => Promise<T>) {
-  const client = createImapClient();
+async function withImap<T>(
+  callback: (client: ImapFlow) => Promise<T>,
+  credentials?: MailCredentials,
+) {
+  const client = createImapClient(credentials);
   await client.connect();
   try {
     return await callback(client);
@@ -84,7 +91,7 @@ async function withImap<T>(callback: (client: ImapFlow) => Promise<T>) {
   }
 }
 
-export async function listImapFolders(): Promise<ImapFolder[]> {
+export async function listImapFolders(credentials?: MailCredentials): Promise<ImapFolder[]> {
   return withImap(async (client) => {
     const folders = await client.list();
     return folders.map((folder) => ({
@@ -92,12 +99,17 @@ export async function listImapFolders(): Promise<ImapFolder[]> {
       name: folder.name,
       specialUse: folder.specialUse || null,
     }));
-  });
+  }, credentials);
+}
+
+export async function verifyImapCredentials(credentials: MailCredentials) {
+  return withImap(async () => true, credentials);
 }
 
 export async function listImapMessages(
   mailbox = "INBOX",
   options: { limit?: number; query?: string } = {},
+  credentials?: MailCredentials,
 ): Promise<ImapMessageSummary[]> {
   const limit = Math.min(Math.max(options.limit || 100, 1), 250);
   return withImap(async (client) => {
@@ -177,12 +189,13 @@ export async function listImapMessages(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
 }
 
 export async function getImapMessage(
   mailbox: string,
   uid: number,
+  credentials?: MailCredentials,
 ): Promise<ImapMessageDetail | null> {
   return withImap(async (client) => {
     const lock = await client.getMailboxLock(mailbox);
@@ -235,13 +248,14 @@ export async function getImapMessage(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
 }
 
 export async function updateImapFlags(
   mailbox: string,
   uids: number[],
   patch: { read?: boolean; starred?: boolean },
+  credentials?: MailCredentials,
 ) {
   if (!uids.length) return;
   return withImap(async (client) => {
@@ -262,13 +276,14 @@ export async function updateImapFlags(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
 }
 
 export async function moveImapMessages(
   mailbox: string,
   uids: number[],
   destination: string,
+  credentials?: MailCredentials,
 ) {
   if (!uids.length) return;
   return withImap(async (client) => {
@@ -278,15 +293,16 @@ export async function moveImapMessages(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
 }
 
 export async function appendImapMessage(
   mailbox: string,
   source: Buffer,
   flags: string[] = ["\\Seen"],
+  credentials?: MailCredentials,
 ) {
   return withImap(async (client) => {
     await client.append(mailbox, source, flags);
-  });
+  }, credentials);
 }

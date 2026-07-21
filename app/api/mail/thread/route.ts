@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { getImapMessage, listImapMessages } from "@/lib/mail/imap";
 import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
+import { getMailSession } from "@/lib/mail/session";
 
 const normalize = (subject: string) =>
   subject
@@ -10,23 +11,25 @@ const normalize = (subject: string) =>
     .toLocaleLowerCase();
 
 export async function GET(request: Request) {
+  const selfHosted = isSelfHostedMailEnabled();
+  const mailSession = selfHosted ? await getMailSession() : null;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims)
+  if (selfHosted ? !mailSession : !data?.claims)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   const subject = new URL(request.url).searchParams.get("subject") || "";
   const key = normalize(subject);
-  if (isSelfHostedMailEnabled()) {
+  if (selfHosted) {
     const folders = ["INBOX", "Sent", "Archive", "Junk", "Trash"];
     const lists = await Promise.all(
-      folders.map((mailbox) => listImapMessages(mailbox, { limit: 100 })),
+      folders.map((mailbox) => listImapMessages(mailbox, { limit: 100 }, mailSession!)),
     );
     const matches = lists
       .flat()
       .filter((item) => normalize(item.subject) === key)
       .slice(0, 20);
     const messages = await Promise.all(
-      matches.map((item) => getImapMessage(item.mailbox, item.uid)),
+      matches.map((item) => getImapMessage(item.mailbox, item.uid, mailSession!)),
     );
     return Response.json(
       messages

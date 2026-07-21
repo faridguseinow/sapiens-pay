@@ -5,11 +5,14 @@ import {
   updateImapFlags,
 } from "@/lib/mail/imap";
 import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
+import { getMailSession } from "@/lib/mail/session";
 
 export async function POST(request: Request) {
+  const selfHosted = isSelfHostedMailEnabled();
+  const mailSession = selfHosted ? await getMailSession() : null;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user)
+  if (selfHosted ? !mailSession : !auth.user)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   const body = (await request.json()) as {
     messageId?: string;
@@ -23,14 +26,14 @@ export async function POST(request: Request) {
       !["inbox", "archive", "trash", "spam"].includes(body.folder))
   )
     return Response.json({ error: "Invalid" }, { status: 400 });
-  if (isSelfHostedMailEnabled()) {
+  if (selfHosted) {
     const parsed = parseImapMessageId(body.messageId);
     if (!parsed)
       return Response.json({ error: "Invalid" }, { status: 400 });
     await updateImapFlags(parsed.mailbox, [parsed.uid], {
       read: body.isRead,
       starred: body.isStarred,
-    });
+    }, mailSession!);
     if (body.folder) {
       const destinations: Record<string, string> = {
         inbox: "INBOX",
@@ -40,10 +43,12 @@ export async function POST(request: Request) {
       };
       const destination = destinations[body.folder];
       if (destination && destination !== parsed.mailbox)
-        await moveImapMessages(parsed.mailbox, [parsed.uid], destination);
+        await moveImapMessages(parsed.mailbox, [parsed.uid], destination, mailSession!);
     }
     return Response.json({ ok: true });
   }
+  if (!auth.user)
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   const payload = {
     user_id: auth.user.id,
     message_id: body.messageId,

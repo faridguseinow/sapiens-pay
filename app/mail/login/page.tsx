@@ -8,7 +8,7 @@ export default function MailLoginPage() {
   return <main className="mail-login"><section>
     <Link href="/" className="mail-brand"><span>sapiens</span><b>pay</b></Link>
     <small>ŞİRKƏT POÇTU</small><h1>Xoş gəldiniz</h1>
-    <p>info@sapiens-pay.com poçt qutusuna təhlükəsiz giriş.</p>
+    <p>@sapiens-pay.com poçt qutunuza təhlükəsiz giriş.</p>
     <MailLoginForm />
   </section></main>;
 }

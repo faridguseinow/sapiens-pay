@@ -4,26 +4,27 @@ import { createClient } from "@/lib/supabase/server";
 import { MailClient } from "./mail-client";
 import { listImapMessages } from "@/lib/mail/imap";
 import {
-  getSelfHostedMailConfig,
   isSelfHostedMailEnabled,
 } from "@/lib/mail/self-hosted-config";
+import { getMailSession } from "@/lib/mail/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function MailPage() {
+  const selfHosted = isSelfHostedMailEnabled();
+  const mailSession = selfHosted ? await getMailSession() : null;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getClaims();
-  if (!auth?.claims) redirect("/mail/login");
+  if (selfHosted ? !mailSession : !auth?.claims) redirect("/mail/login");
   const draftRequest = supabase
     .from("mail_drafts")
     .select("id,recipients,cc,bcc,subject,body,updated_at")
     .order("updated_at", { ascending: false });
-  if (isSelfHostedMailEnabled()) {
+  if (selfHosted) {
     const folders = ["INBOX", "Archive", "Junk", "Trash"] as const;
-    const [sent, draftResult, ...receivedFolders] = await Promise.all([
-      listImapMessages("Sent", { limit: 100 }),
-      draftRequest,
-      ...folders.map((folder) => listImapMessages(folder, { limit: 100 })),
+    const [sent, ...receivedFolders] = await Promise.all([
+      listImapMessages("Sent", { limit: 100 }, mailSession!),
+      ...folders.map((folder) => listImapMessages(folder, { limit: 100 }, mailSession!)),
     ]);
     const folderState = {
       INBOX: "inbox",
@@ -56,8 +57,8 @@ export default async function MailPage() {
           is_read: item.isRead,
           is_starred: item.isStarred,
         }))}
-        initialDrafts={draftResult.data ?? []}
-        accountEmail={getSelfHostedMailConfig().mailbox}
+        initialDrafts={[]}
+        accountEmail={mailSession!.email}
       />
     );
   }
@@ -74,7 +75,7 @@ export default async function MailPage() {
       outgoing={outgoing.data?.data ?? []}
       initialStates={stateResult.data ?? []}
       initialDrafts={draftResult.data ?? []}
-      accountEmail={String(auth.claims.email ?? "")}
+      accountEmail={String(auth?.claims.email ?? "")}
     />
   );
 }

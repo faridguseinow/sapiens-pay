@@ -2,21 +2,24 @@ import { createClient } from "@/lib/supabase/server";
 import { getResend } from "@/lib/resend";
 import { getImapMessage, parseImapMessageId } from "@/lib/mail/imap";
 import { isSelfHostedMailEnabled } from "@/lib/mail/self-hosted-config";
+import { getMailSession } from "@/lib/mail/session";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const selfHosted = isSelfHostedMailEnabled();
+  const mailSession = selfHosted ? await getMailSession() : null;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getClaims();
-  if (!auth?.claims)
+  if (selfHosted ? !mailSession : !auth?.claims)
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  if (isSelfHostedMailEnabled()) {
+  if (selfHosted) {
     const parsedId = parseImapMessageId(id);
     if (!parsedId)
       return Response.json({ error: "Məktub tapılmadı" }, { status: 404 });
-    const message = await getImapMessage(parsedId.mailbox, parsedId.uid);
+    const message = await getImapMessage(parsedId.mailbox, parsedId.uid, mailSession!);
     if (!message)
       return Response.json({ error: "Məktub tapılmadı" }, { status: 404 });
     return Response.json({
