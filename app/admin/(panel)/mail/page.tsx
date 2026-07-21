@@ -1,13 +1,18 @@
 import {
   createMailbox,
+  createAlias,
+  removeAlias,
   removeMailbox,
   setMailboxStatus,
   updateMailboxPassword,
 } from "./actions";
 import {
   listMailcowMailboxes,
+  listMailcowAliases,
+  type MailcowAlias,
   type MailcowMailbox,
 } from "@/lib/mail/mailcow";
+import { PasswordField } from "./password-field";
 
 const DOMAIN = "sapiens-pay.com";
 
@@ -22,11 +27,14 @@ export default async function MailboxesPage({
 }) {
   const params = await searchParams;
   let mailboxes: MailcowMailbox[] = [];
+  let aliases: MailcowAlias[] = [];
   let connectionError = false;
   try {
-    mailboxes = (await listMailcowMailboxes()).filter(
+    const [mailboxItems, aliasItems] = await Promise.all([listMailcowMailboxes(), listMailcowAliases()]);
+    mailboxes = mailboxItems.filter(
       (item) => item.domain === DOMAIN || item.username.endsWith(`@${DOMAIN}`),
     );
+    aliases = aliasItems.filter((item) => item.domain === DOMAIN && !item.is_catch_all);
   } catch {
     connectionError = true;
   }
@@ -70,11 +78,7 @@ export default async function MailboxesPage({
               <b>@{DOMAIN}</b>
             </span>
           </label>
-          <label>
-            Başlanğıc şifrə
-            <input name="password" required type="password" minLength={12} autoComplete="new-password" />
-            <small>Minimum 12 simvol: böyük/kiçik hərf, rəqəm və xüsusi işarə.</small>
-          </label>
+          <PasswordField />
           <label>
             Yaddaş limiti
             <select name="quotaMb" defaultValue="5120">
@@ -118,10 +122,7 @@ export default async function MailboxesPage({
                     <div>
                       <form action={updateMailboxPassword}>
                         <input type="hidden" name="username" value={item.username} />
-                        <label>
-                          Yeni şifrə
-                          <input name="password" type="password" minLength={12} required autoComplete="new-password" />
-                        </label>
+                        <PasswordField label="Yeni şifrə" />
                         <button className="admin-button">Şifrəni dəyiş</button>
                       </form>
                       {!primary ? (
@@ -148,6 +149,23 @@ export default async function MailboxesPage({
             })}
           </div>
         ) : !connectionError ? <div className="admin-empty">Mailbox tapılmadı.</div> : null}
+      </section>
+
+      <section className="admin-panel mail-admin-create" style={{ marginTop: 22 }}>
+        <div className="admin-panel__header"><div><h2>Yönləndirmə aliasları</h2><p>Ayrıca mailbox yaratmadan ünvanı mövcud hesaba yönləndirin.</p></div></div>
+        <form action={createAlias} className="mail-admin-form">
+          <label>Alias ünvanı<span className="mail-admin-address"><input name="localPart" required placeholder="support" autoCapitalize="none"/><b>@{DOMAIN}</b></span></label>
+          <label>Çatacağı mailbox<select name="destination" required>{mailboxes.filter((item) => String(item.active) === "1").map((item) => <option key={item.username}>{item.username}</option>)}</select></label>
+          <button className="admin-button admin-button--primary">+ Alias yarat</button>
+        </form>
+        <div className="mail-admin-list">
+          {aliases.map((item) => <article className="mail-admin-item" key={item.id}>
+            <div className="mail-admin-identity"><b>↪</b><span><strong>{item.address}</strong><small>→ {item.goto}</small></span></div>
+            <span className="mail-admin-usage"><i className={String(item.active) === "1" ? "is-active" : ""}>{String(item.active) === "1" ? "Aktiv" : "Deaktiv"}</i></span>
+            <form action={removeAlias}><input type="hidden" name="id" value={item.id}/><button className="admin-button">Sil</button></form>
+          </article>)}
+          {!aliases.length ? <div className="admin-empty">Alias yaradılmayıb.</div> : null}
+        </div>
       </section>
     </main>
   );

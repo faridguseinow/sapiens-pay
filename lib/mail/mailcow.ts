@@ -32,6 +32,15 @@ export type MailcowMailbox = {
   local_part?: string;
 };
 
+export type MailcowAlias = {
+  id: number;
+  address: string;
+  goto: string;
+  domain: string;
+  active: number | string;
+  is_catch_all?: number;
+};
+
 type MailcowOperationResult = {
   type: "success" | "danger" | "error";
   msg: string | string[];
@@ -60,6 +69,18 @@ export function assertMailcowSuccess(results: MailcowOperationResult[]) {
 
 export function listMailcowMailboxes() {
   return mailcowRequest<MailcowMailbox[]>("/get/mailbox/all");
+}
+
+export function listMailcowAliases() {
+  return mailcowRequest<MailcowAlias[]>("/get/alias/all");
+}
+
+export function createMailcowAlias(address: string, destination: string) {
+  return operation("/add/alias", { address, goto: destination, active: "1", sogo_visible: "1" });
+}
+
+export function deleteMailcowAlias(id: number) {
+  return operation("/delete/alias", [String(id)]);
 }
 
 export function createMailcowMailbox(input: {

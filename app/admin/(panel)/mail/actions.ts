@@ -7,6 +7,8 @@ import {
   assertMailcowSuccess,
   changeMailcowMailboxPassword,
   createMailcowMailbox,
+  createMailcowAlias,
+  deleteMailcowAlias,
   deleteMailcowMailbox,
   setMailcowMailboxActive,
 } from "@/lib/mail/mailcow";
@@ -129,4 +131,25 @@ export async function removeMailbox(formData: FormData) {
     failed();
   }
   done("Mailbox və onun məktubları silindi.");
+}
+
+export async function createAlias(formData: FormData) {
+  await requireAdmin();
+  try {
+    const localPart = String(formData.get("localPart") ?? "").trim().toLowerCase();
+    const destination = mailbox(formData.get("destination"));
+    if (!/^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/.test(localPart)) throw new Error("Invalid alias");
+    assertMailcowSuccess(await createMailcowAlias(`${localPart}@${DOMAIN}`, destination));
+  } catch { failed(); }
+  done("Alias yaradıldı.");
+}
+
+export async function removeAlias(formData: FormData) {
+  await requireAdmin();
+  try {
+    const id = Number(formData.get("id"));
+    if (!Number.isSafeInteger(id) || id < 1) throw new Error("Invalid alias");
+    assertMailcowSuccess(await deleteMailcowAlias(id));
+  } catch { failed(); }
+  done("Alias silindi.");
 }

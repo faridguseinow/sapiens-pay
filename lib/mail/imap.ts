@@ -40,6 +40,16 @@ export type ImapMessageDetail = ImapMessageSummary & {
   }>;
 };
 
+export type ImapDraft = {
+  id: string;
+  recipients: string[];
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  body: string;
+  updated_at: string;
+};
+
 const addressList = (
   addresses: Array<{ address?: string; name?: string }> | undefined,
 ) =>
@@ -304,5 +314,51 @@ export async function appendImapMessage(
 ) {
   return withImap(async (client) => {
     await client.append(mailbox, source, flags);
+  }, credentials);
+}
+
+export async function deleteImapMessages(
+  mailbox: string,
+  uids: number[],
+  credentials?: MailCredentials,
+) {
+  if (!uids.length) return;
+  return withImap(async (client) => {
+    const lock = await client.getMailboxLock(mailbox);
+    try {
+      await client.messageDelete(uids, { uid: true });
+    } finally {
+      lock.release();
+    }
+  }, credentials);
+}
+
+export async function listImapDrafts(
+  credentials: MailCredentials,
+): Promise<ImapDraft[]> {
+  return withImap(async (client) => {
+    const lock = await client.getMailboxLock("Drafts");
+    try {
+      const exists = client.mailbox && "exists" in client.mailbox ? client.mailbox.exists : 0;
+      if (!exists) return [];
+      const start = Math.max(1, exists - 99);
+      const messages = await client.fetchAll(`${start}:*`, { uid: true, source: true });
+      const drafts = await Promise.all(messages.map(async (message) => {
+        if (!message.source) return null;
+        const parsed = await simpleParser(message.source);
+        return {
+          id: stableId("Drafts", message.uid),
+          recipients: parsed.to ? (Array.isArray(parsed.to) ? parsed.to : [parsed.to]).flatMap((x) => addressList(x.value)) : [],
+          cc: parsed.cc ? (Array.isArray(parsed.cc) ? parsed.cc : [parsed.cc]).flatMap((x) => addressList(x.value)) : [],
+          bcc: parsed.bcc ? (Array.isArray(parsed.bcc) ? parsed.bcc : [parsed.bcc]).flatMap((x) => addressList(x.value)) : [],
+          subject: parsed.subject || "",
+          body: parsed.text || "",
+          updated_at: (parsed.date || new Date()).toISOString(),
+        } satisfies ImapDraft;
+      }));
+      return drafts.filter((item): item is ImapDraft => item !== null).reverse();
+    } finally {
+      lock.release();
+    }
   }, credentials);
 }

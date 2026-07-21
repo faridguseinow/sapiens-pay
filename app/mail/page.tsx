@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getResend } from "@/lib/resend";
 import { createClient } from "@/lib/supabase/server";
 import { MailClient } from "./mail-client";
-import { listImapMessages } from "@/lib/mail/imap";
+import { listImapDrafts, listImapMessages } from "@/lib/mail/imap";
 import {
   isSelfHostedMailEnabled,
 } from "@/lib/mail/self-hosted-config";
@@ -22,8 +22,9 @@ export default async function MailPage() {
     .order("updated_at", { ascending: false });
   if (selfHosted) {
     const folders = ["INBOX", "Archive", "Junk", "Trash"] as const;
-    const [sent, ...receivedFolders] = await Promise.all([
+    const [sent, drafts, ...receivedFolders] = await Promise.all([
       listImapMessages("Sent", { limit: 100 }, mailSession!),
+      listImapDrafts(mailSession!),
       ...folders.map((folder) => listImapMessages(folder, { limit: 100 }, mailSession!)),
     ]);
     const folderState = {
@@ -57,7 +58,7 @@ export default async function MailPage() {
           is_read: item.isRead,
           is_starred: item.isStarred,
         }))}
-        initialDrafts={[]}
+        initialDrafts={drafts}
         accountEmail={mailSession!.email}
       />
     );

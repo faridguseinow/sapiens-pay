@@ -1,0 +1,10 @@
+[Unit]
+Description=Sapiens Mail server health monitor
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/sapiens-mail-monitor.env
+ExecStart=/usr/local/sbin/sapiens-mail-monitor
+

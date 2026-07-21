@@ -7878,6 +7878,9 @@ ul {
   input { border: 0; border-radius: 0; outline: 0; }
   b { padding: 0 12px; color: #667068; white-space: nowrap; }
 }
+.mail-admin-password { display: flex; align-items: stretch; gap: 6px; }
+.mail-admin-password input { min-width: 0; flex: 1; }
+.mail-admin-password button { padding: 0 10px; border: 1px solid #d8ddd4; border-radius: 9px; background: #f7f9f5; color: #465048; font-weight: 700; cursor: pointer; }
 .mail-admin-list { display: grid; }
 .mail-admin-item {
   display: grid; grid-template-columns: minmax(240px, 1fr) auto auto; align-items: center;
