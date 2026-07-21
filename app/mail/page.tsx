@@ -1,26 +1,13 @@
 import { redirect } from "next/navigation";
-import { getResend } from "@/lib/resend";
-import { createClient } from "@/lib/supabase/server";
 import { MailClient } from "./mail-client";
 import { listImapDrafts, listImapMessages } from "@/lib/mail/imap";
-import {
-  isSelfHostedMailEnabled,
-} from "@/lib/mail/self-hosted-config";
 import { getMailSession } from "@/lib/mail/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function MailPage() {
-  const selfHosted = isSelfHostedMailEnabled();
-  const mailSession = selfHosted ? await getMailSession() : null;
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getClaims();
-  if (selfHosted ? !mailSession : !auth?.claims) redirect("/mail/login");
-  const draftRequest = supabase
-    .from("mail_drafts")
-    .select("id,recipients,cc,bcc,subject,body,updated_at")
-    .order("updated_at", { ascending: false });
-  if (selfHosted) {
+  const mailSession = await getMailSession();
+  if (!mailSession) redirect("/mail/login");
     const folders = ["INBOX", "Archive", "Junk", "Trash"] as const;
     const [sent, drafts, ...receivedFolders] = await Promise.all([
       listImapMessages("Sent", { limit: 100 }, mailSession!),
@@ -59,24 +46,7 @@ export default async function MailPage() {
           is_starred: item.isStarred,
         }))}
         initialDrafts={drafts}
-        accountEmail={mailSession!.email}
+        accountEmail={mailSession.email}
       />
     );
-  }
-  const resend = getResend();
-  const [incoming, outgoing, stateResult, draftResult] = await Promise.all([
-    resend.emails.receiving.list({ limit: 100 }),
-    resend.emails.list({ limit: 100 }),
-    supabase.from("mail_states").select("message_id,folder,is_read,is_starred"),
-    draftRequest,
-  ]);
-  return (
-    <MailClient
-      incoming={incoming.data?.data ?? []}
-      outgoing={outgoing.data?.data ?? []}
-      initialStates={stateResult.data ?? []}
-      initialDrafts={draftResult.data ?? []}
-      accountEmail={String(auth?.claims.email ?? "")}
-    />
-  );
 }
