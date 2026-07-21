@@ -37,6 +37,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { ComposeForm } from "./compose-form";
 import { mailLogout } from "./actions";
 
@@ -81,6 +82,8 @@ type MailPreferences = {
   displayName: string;
   signature: string;
   notifications: boolean;
+  avatar: string;
+  templates: Array<{ id: string; name: string; body: string }>;
 };
 
 const folderMeta = {
@@ -251,6 +254,8 @@ export function MailClient({
     displayName: "Sapiens Pay",
     signature: "",
     notifications: false,
+    avatar: "",
+    templates: [],
   });
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -636,7 +641,7 @@ export function MailClient({
         </div>
         <form action={mailLogout}>
           <button className="webmail-user">
-            <i>{accountEmail[0]?.toUpperCase()}</i>
+            <i>{preferences.avatar ? <Image src={preferences.avatar} alt="Profil" width={160} height={160} unoptimized /> : accountEmail[0]?.toUpperCase()}</i>
             <span>
               <b>{accountEmail.split("@")[0]}</b>
               <small>{accountEmail}</small>
@@ -679,7 +684,7 @@ export function MailClient({
             <Settings2 size={18} />
           </IconButton>
           <div className="webmail-avatar" title={accountEmail}>
-            {accountEmail[0]?.toUpperCase()}
+            {preferences.avatar ? <Image src={preferences.avatar} alt="Profil" width={160} height={160} unoptimized /> : accountEmail[0]?.toUpperCase()}
           </div>
         </header>
 
@@ -1316,6 +1321,7 @@ export function MailClient({
                 displayName={preferences.displayName}
                 signature={reply.id ? "" : preferences.signature}
                 contacts={contacts}
+                templates={preferences.templates}
                 onSent={() => {
                   setCompose(false);
                   notify("Məktub uğurla göndərildi");
@@ -1381,8 +1387,37 @@ function MailSettings({
           <IconButton label="Bağla" onClick={onClose}><X size={19} /></IconButton>
         </header>
         <div className="mail-settings-account">
-          <i><UserRound size={20} /></i>
+          <i>{draft.avatar ? <Image src={draft.avatar} alt="Profil şəkli" width={160} height={160} unoptimized /> : <UserRound size={20} />}</i>
           <span><b>{accountEmail}</b><small>Aktiv poçt hesabı</small></span>
+          <label className="mail-avatar-upload">
+            Şəkil seç
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file || file.size > 5 * 1024 * 1024) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const image = new window.Image();
+                  image.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 160;
+                    canvas.height = 160;
+                    const context = canvas.getContext("2d");
+                    if (!context) return;
+                    const side = Math.min(image.width, image.height);
+                    context.drawImage(image, (image.width - side) / 2, (image.height - side) / 2, side, side, 0, 0, 160, 160);
+                    setDraft((current) => ({ ...current, avatar: canvas.toDataURL("image/webp", 0.82) }));
+                  };
+                  image.src = String(reader.result);
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+          </label>
+          {draft.avatar ? <button type="button" className="mail-avatar-remove" onClick={() => setDraft({ ...draft, avatar: "" })}>Sil</button> : null}
         </div>
         <label>
           <span>Göndərən adı</span>
@@ -1413,6 +1448,42 @@ function MailSettings({
             onChange={(event) => setDraft({ ...draft, notifications: event.target.checked })}
           />
         </label>
+        <div className="mail-template-settings">
+          <div>
+            <span>Hazır cavab şablonları</span>
+            <small>Tez-tez istifadə etdiyiniz mətnləri bir kliklə məktuba əlavə edin.</small>
+          </div>
+          {draft.templates.map((template, index) => (
+            <div className="mail-template-row" key={template.id}>
+              <input
+                value={template.name}
+                placeholder="Şablonun adı"
+                onChange={(event) => setDraft({
+                  ...draft,
+                  templates: draft.templates.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item),
+                })}
+              />
+              <textarea
+                value={template.body}
+                rows={3}
+                placeholder="Şablon mətni"
+                onChange={(event) => setDraft({
+                  ...draft,
+                  templates: draft.templates.map((item, itemIndex) => itemIndex === index ? { ...item, body: event.target.value } : item),
+                })}
+              />
+              <button type="button" onClick={() => setDraft({ ...draft, templates: draft.templates.filter((_, itemIndex) => itemIndex !== index) })}>Sil</button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="mail-template-add"
+            onClick={() => setDraft({
+              ...draft,
+              templates: [...draft.templates, { id: crypto.randomUUID(), name: "Yeni şablon", body: "" }],
+            })}
+          >+ Yeni şablon</button>
+        </div>
         <footer>
           <button type="button" onClick={onClose}>Ləğv et</button>
           <button type="button" className="primary" onClick={() => void onSave(draft)}>Yadda saxla</button>

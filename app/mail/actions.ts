@@ -38,6 +38,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
     .filter(Boolean);
   const subject = String(formData.get("subject") ?? "").trim();
   const text = String(formData.get("message") ?? "").trim();
+  const html = String(formData.get("html") ?? "").trim().slice(0, 1_000_000);
   const fromName = String(formData.get("displayName") ?? "").trim().slice(0, 120);
   const cc = String(formData.get("cc") ?? "")
     .split(",")
@@ -75,7 +76,7 @@ export async function sendMail(_state: MailActionState, formData: FormData) {
     })),
   );
   try {
-    await sendSmtpMail({ to, cc, bcc, subject, text, attachments, fromName }, mailSession);
+    await sendSmtpMail({ to, cc, bcc, subject, text, html: html || undefined, attachments, fromName }, mailSession);
     const draft = draftId ? parseImapMessageId(draftId) : null;
     if (draft?.mailbox === "Drafts")
       await deleteImapMessages("Drafts", [draft.uid], mailSession);

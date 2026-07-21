@@ -34,11 +34,15 @@ const splitRecipients = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+
 export function ComposeForm({
   initial = {},
   displayName = "",
   signature = "",
   contacts = [],
+  templates = [],
   onSent,
   onDiscard,
 }: {
@@ -46,12 +50,13 @@ export function ComposeForm({
   displayName?: string;
   signature?: string;
   contacts?: string[];
+  templates?: Array<{ id: string; name: string; body: string }>;
   onSent?: () => void;
   onDiscard?: (draftId?: string) => void;
 }) {
   const [state, action, pending] = useActionState(sendMail, undefined);
   const formRef = useRef<HTMLFormElement>(null);
-  const messageRef = useRef<HTMLTextAreaElement>(null);
+  const messageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draftId, setDraftId] = useState(initial.id);
@@ -65,6 +70,8 @@ export function ComposeForm({
   const initialMessage = initial.message
     ? `${signature ? `${signature}\n\n` : ""}${initial.message}`
     : signature;
+  const [plainText, setPlainText] = useState(initialMessage);
+  const [html, setHtml] = useState(escapeHtml(initialMessage));
 
   useEffect(() => {
     if (state?.success) onSent?.();
@@ -102,19 +109,24 @@ export function ComposeForm({
     }, 800);
   };
 
-  const insertText = (before: string, after = before) => {
+  const syncEditor = () => {
     const field = messageRef.current;
     if (!field) return;
-    const start = field.selectionStart;
-    const end = field.selectionEnd;
-    field.setRangeText(
-      `${before}${field.value.slice(start, end)}${after}`,
-      start,
-      end,
-      "end",
-    );
-    field.focus();
+    setPlainText(field.innerText);
+    setHtml(field.innerHTML);
     autosave();
+  };
+
+  const format = (command: string, value?: string) => {
+    messageRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncEditor();
+  };
+
+  const insertText = (value: string) => {
+    messageRef.current?.focus();
+    document.execCommand("insertText", false, value);
+    syncEditor();
   };
 
   const discard = async () => {
@@ -133,6 +145,8 @@ export function ComposeForm({
     >
       <input type="hidden" name="draftId" value={draftId || ""} />
       <input type="hidden" name="displayName" value={displayName} />
+      <input type="hidden" name="message" value={plainText} />
+      <input type="hidden" name="html" value={html} />
       <datalist id="mail-contact-suggestions">
         {contacts.map((contact) => <option key={contact} value={contact} />)}
       </datalist>
@@ -193,16 +207,16 @@ export function ComposeForm({
         />
       </div>
       <div className="compose-formatbar" aria-label="Mətn formatlama alətləri">
-        <button type="button" title="Qalın" onClick={() => insertText("**")}>
+        <button type="button" title="Qalın" onClick={() => format("bold")}>
           <Bold size={16} />
         </button>
-        <button type="button" title="Maili" onClick={() => insertText("_")}>
+        <button type="button" title="Maili" onClick={() => format("italic")}>
           <Italic size={16} />
         </button>
         <button
           type="button"
           title="Altıxətli"
-          onClick={() => insertText("__")}
+          onClick={() => format("underline")}
         >
           <Underline size={16} />
         </button>
@@ -210,33 +224,53 @@ export function ComposeForm({
         <button
           type="button"
           title="Siyahı"
-          onClick={() => insertText("\n• ", "")}
+          onClick={() => format("insertUnorderedList")}
         >
           <List size={17} />
         </button>
         <button
           type="button"
           title="Nömrəli siyahı"
-          onClick={() => insertText("\n1. ", "")}
+          onClick={() => format("insertOrderedList")}
         >
           <ListOrdered size={17} />
         </button>
         <button
           type="button"
           title="Keçid"
-          onClick={() => insertText("[", "](https://)")}
+          onClick={() => {
+            const url = window.prompt("Keçidin ünvanını daxil edin", "https://");
+            if (url) format("createLink", url);
+          }}
         >
           <Link2 size={16} />
         </button>
+        {templates.length ? (
+          <select
+            aria-label="Hazır cavab şablonu"
+            defaultValue=""
+            onChange={(event) => {
+              const template = templates.find((item) => item.id === event.target.value);
+              if (template) insertText(template.body);
+              event.target.value = "";
+            }}
+          >
+            <option value="" disabled>Şablon əlavə et</option>
+            {templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
+          </select>
+        ) : null}
       </div>
-      <textarea
+      <div
         ref={messageRef}
-        name="message"
-        defaultValue={initialMessage}
-        rows={15}
-        placeholder="Məktubunuzu yazın..."
+        className="compose-editor"
+        contentEditable
+        suppressContentEditableWarning
+        dangerouslySetInnerHTML={{ __html: escapeHtml(initialMessage) }}
+        data-placeholder="Məktubunuzu yazın..."
         aria-label="Məktub mətni"
-        required
+        role="textbox"
+        aria-multiline="true"
+        onInput={syncEditor}
       />
       {files.length ? (
         <div className="compose-attachments">
@@ -301,7 +335,7 @@ export function ComposeForm({
           <button
             type="button"
             title="Emoji"
-            onClick={() => insertText("🙂", "")}
+            onClick={() => insertText("🙂")}
           >
             <Smile size={18} />
           </button>
