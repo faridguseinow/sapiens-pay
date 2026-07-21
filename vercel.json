@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/mail-health",
-      "schedule": "17 * * * *"
+      "schedule": "17 6 * * *"
     }
   ]
 }
