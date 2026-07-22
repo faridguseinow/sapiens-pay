@@ -5,6 +5,20 @@ import { getMailSession } from "@/lib/mail/session";
 const safeFilename = (value: string) =>
   value.replace(/[\r\n"\\/]/g, "_").slice(0, 180) || "attachment";
 
+const asciiFilename = (value: string) => {
+  const result = value
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7E]/g, "_")
+    .replace(/["\\]/g, "_")
+    .slice(0, 180);
+  return result || "attachment";
+};
+
+const encodedFilename = (value: string) =>
+  encodeURIComponent(value).replace(/[!'()*]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+
 export async function GET(request: Request) {
   const mailSession = await getMailSession();
   if (!mailSession)
@@ -20,12 +34,13 @@ export async function GET(request: Request) {
   const attachment = message?.attachments[index];
   if (!attachment)
     return Response.json({ error: "Fayl tapılmadı" }, { status: 404 });
+  const filename = safeFilename(attachment.filename);
   const content = Uint8Array.from(attachment.content).buffer;
   return new Response(content, {
     headers: {
       "content-type": attachment.contentType || "application/octet-stream",
-      "content-length": String(attachment.size),
-      "content-disposition": `attachment; filename="${safeFilename(attachment.filename)}"`,
+      "content-length": String(content.byteLength),
+      "content-disposition": `attachment; filename="${asciiFilename(filename)}"; filename*=UTF-8''${encodedFilename(filename)}`,
       "cache-control": "private, no-store",
       "x-content-type-options": "nosniff",
     },
