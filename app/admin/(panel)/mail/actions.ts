@@ -51,22 +51,39 @@ function done(message: string) {
   redirect(`/admin/mail?success=${encodeURIComponent(message)}`);
 }
 
-function failed() {
-  redirect(
-    `/admin/mail?error=${encodeURIComponent(
-      "Əməliyyat tamamlanmadı. Məlumatları yoxlayın.",
-    )}`,
-  );
+function readableError(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("password_complexity")) {
+    return "Şifrə mail serverinin təhlükəsizlik tələblərinə uyğun deyil. Daha unikal şifrə yaradın.";
+  }
+  if (message.includes("is_alias_or_mailbox") || message.includes("object_exists")) {
+    return "Bu mail ünvanı artıq mövcuddur.";
+  }
+  if (message.includes("mailbox_quota") || message.includes("domain_quota")) {
+    return "Seçilən yaddaş limiti domenin mövcud limitini aşır.";
+  }
+  if (message.includes("access_denied")) {
+    return "Mail serveri bu əməliyyata icazə vermədi.";
+  }
+  if (message && !message.includes("Mailcow") && !message.includes("HTTP")) {
+    return message;
+  }
+  return "Əməliyyat tamamlanmadı. Mail serverinin cavabını yoxlayın.";
+}
+
+function failed(error: unknown, fields?: Record<string, string>) {
+  const params = new URLSearchParams({ error: readableError(error), ...fields });
+  redirect(`/admin/mail?${params.toString()}`);
 }
 
 export async function createMailbox(formData: FormData) {
   await requireAdmin();
+  const localPart = String(formData.get("localPart") ?? "")
+    .trim()
+    .toLowerCase();
+  const displayName = String(formData.get("displayName") ?? "").trim();
+  const quotaMb = Number(formData.get("quotaMb") ?? 5120);
   try {
-    const localPart = String(formData.get("localPart") ?? "")
-      .trim()
-      .toLowerCase();
-    const displayName = String(formData.get("displayName") ?? "").trim();
-    const quotaMb = Number(formData.get("quotaMb") ?? 5120);
     if (!/^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/.test(localPart)) {
       throw new Error("Ünvan adı yanlışdır.");
     }
@@ -81,8 +98,12 @@ export async function createMailbox(formData: FormData) {
         quotaMb,
       }),
     );
-  } catch {
-    failed();
+  } catch (error) {
+    failed(error, {
+      displayName: displayName.slice(0, 80),
+      localPart: localPart.slice(0, 64),
+      quotaMb: String(quotaMb),
+    });
   }
   done("Yeni mail ünvanı yaradıldı.");
 }
@@ -96,8 +117,8 @@ export async function setMailboxStatus(formData: FormData) {
       throw new Error("Əsas mailbox deaktiv edilə bilməz.");
     }
     assertMailcowSuccess(await setMailcowMailboxActive(username, active));
-  } catch {
-    failed();
+  } catch (error) {
+    failed(error);
   }
   done("Mailbox statusu yeniləndi.");
 }
@@ -112,8 +133,8 @@ export async function updateMailboxPassword(formData: FormData) {
         password(formData.get("password")),
       ),
     );
-  } catch {
-    failed();
+  } catch (error) {
+    failed(error);
   }
   done("Yeni şifrə yadda saxlanıldı.");
 }
@@ -127,8 +148,8 @@ export async function removeMailbox(formData: FormData) {
       throw new Error("Mailbox silinmə təsdiqi yanlışdır.");
     }
     assertMailcowSuccess(await deleteMailcowMailbox(username));
-  } catch {
-    failed();
+  } catch (error) {
+    failed(error);
   }
   done("Mailbox və onun məktubları silindi.");
 }
@@ -140,7 +161,7 @@ export async function createAlias(formData: FormData) {
     const destination = mailbox(formData.get("destination"));
     if (!/^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/.test(localPart)) throw new Error("Invalid alias");
     assertMailcowSuccess(await createMailcowAlias(`${localPart}@${DOMAIN}`, destination));
-  } catch { failed(); }
+  } catch (error) { failed(error); }
   done("Alias yaradıldı.");
 }
 
@@ -150,6 +171,6 @@ export async function removeAlias(formData: FormData) {
     const id = Number(formData.get("id"));
     if (!Number.isSafeInteger(id) || id < 1) throw new Error("Invalid alias");
     assertMailcowSuccess(await deleteMailcowAlias(id));
-  } catch { failed(); }
+  } catch (error) { failed(error); }
   done("Alias silindi.");
 }

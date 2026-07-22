@@ -23,7 +23,13 @@ function megabytes(bytes = 0) {
 export default async function MailboxesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string }>;
+  searchParams: Promise<{
+    success?: string;
+    error?: string;
+    displayName?: string;
+    localPart?: string;
+    quotaMb?: string;
+  }>;
 }) {
   const params = await searchParams;
   let mailboxes: MailcowMailbox[] = [];
@@ -69,19 +75,19 @@ export default async function MailboxesPage({
         <form action={createMailbox} className="mail-admin-form">
           <label>
             Görünən ad
-            <input name="displayName" required placeholder="Sapiens Support" maxLength={80} />
+            <input name="displayName" required placeholder="Sapiens Support" maxLength={80} defaultValue={params.displayName} />
           </label>
           <label>
             Mail ünvanı
             <span className="mail-admin-address">
-              <input name="localPart" required placeholder="support" maxLength={64} autoCapitalize="none" />
+              <input name="localPart" required placeholder="support" maxLength={64} autoCapitalize="none" defaultValue={params.localPart} />
               <b>@{DOMAIN}</b>
             </span>
           </label>
           <PasswordField />
           <label>
             Yaddaş limiti
-            <select name="quotaMb" defaultValue="5120">
+            <select name="quotaMb" defaultValue={params.quotaMb || "5120"}>
               <option value="2048">2 GB</option>
               <option value="5120">5 GB</option>
               <option value="10240">10 GB</option>
