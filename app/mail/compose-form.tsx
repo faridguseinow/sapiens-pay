@@ -76,6 +76,14 @@ export function ComposeForm({
   useEffect(() => {
     if (state?.success) onSent?.();
   }, [onSent, state?.success]);
+  useEffect(() => {
+    // The editor is intentionally left uncontrolled. React state updates on
+    // every keystroke (draft autosave and hidden fields); rendering its HTML
+    // as a prop would restore the initial value and erase what the user typed.
+    if (messageRef.current) {
+      messageRef.current.innerHTML = escapeHtml(initialMessage);
+    }
+  }, [initialMessage]);
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
@@ -265,7 +273,6 @@ export function ComposeForm({
         className="compose-editor"
         contentEditable
         suppressContentEditableWarning
-        dangerouslySetInnerHTML={{ __html: escapeHtml(initialMessage) }}
         data-placeholder="Məktubunuzu yazın..."
         aria-label="Məktub mətni"
         role="textbox"
