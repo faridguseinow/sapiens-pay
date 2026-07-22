@@ -1188,8 +1188,21 @@ export function MailClient({
                       <iframe
                         className="reader-html"
                         title="Məktub məzmunu"
-                        sandbox=""
+                        sandbox="allow-same-origin"
                         srcDoc={detail.html}
+                        onLoad={(event) => {
+                          const document = event.currentTarget.contentDocument;
+                          if (!document) return;
+                          const height = Math.min(
+                            Math.max(
+                              document.body.scrollHeight,
+                              document.documentElement.scrollHeight,
+                              72,
+                            ),
+                            2400,
+                          );
+                          event.currentTarget.style.height = `${height}px`;
+                        }}
                       />
                     ) : detail.text ? (
                       <p className="reader-text">{detail.text}</p>

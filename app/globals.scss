@@ -6719,7 +6719,8 @@ ul {
 }
 .reader-html {
   width: 100%;
-  min-height: 420px;
+  height: 96px;
+  min-height: 72px;
   border: 0;
   background: #fff;
 }
@@ -7453,7 +7454,7 @@ ul {
   white-space: pre-wrap;
 }
 .reader-html {
-  min-height: 480px;
+  min-height: 72px;
 }
 .reader-files {
   display: block;
