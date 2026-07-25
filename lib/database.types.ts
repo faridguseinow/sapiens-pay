@@ -1,6 +1,8 @@
 export type LocaleCode = "az" | "ru" | "en";
 export type PostStatus = "draft" | "published";
 export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "closed";
+export type TaskStatus = "todo" | "in_progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
 
 export type BlogPost = {
   id: string;
@@ -64,4 +66,38 @@ export type Lead = {
   next_follow_up_at: string | null;
   submitted_at: string;
   updated_at: string;
+};
+
+export type TeamMember = {
+  id: string;
+  name: string;
+  email: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type AdminTask = {
+  id: string;
+  title: string;
+  description: string | null;
+  assignee_id: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  deadline: string;
+  seen_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  assignee?: TeamMember | null;
+};
+
+export type TaskUpdate = {
+  id: string;
+  task_id: string;
+  author: string;
+  note: string;
+  from_status: TaskStatus | null;
+  to_status: TaskStatus | null;
+  created_at: string;
 };
