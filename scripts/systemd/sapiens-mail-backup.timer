@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Sapiens Mail backup every day
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+Unit=sapiens-mail-backup.service
+
+[Install]
+WantedBy=timers.target

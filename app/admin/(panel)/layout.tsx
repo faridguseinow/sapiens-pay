@@ -50,9 +50,17 @@ export default async function AdminPanelLayout({
             Müraciətlər
             {unreadCount ? <b className="admin-nav__badge">{unreadCount}</b> : null}
           </Link>
+          <Link href="/admin/tasks">
+            <span>✓</span>
+            Tapşırıqlar
+          </Link>
           <Link href="/admin/blog">
             <span>✦</span>
             Bloq
+          </Link>
+          <Link href="/admin/mail">
+            <span>✉</span>
+            Mail ünvanları
           </Link>
         </nav>
         <div className="admin-sidebar__bottom">

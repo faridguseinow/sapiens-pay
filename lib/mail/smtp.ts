@@ -2,6 +2,8 @@ import "server-only";
 
 import nodemailer from "nodemailer";
 import { getSelfHostedMailConfig } from "./self-hosted-config";
+import { appendImapMessage } from "./imap";
+import type { MailCredentials } from "./session";
 
 export type SmtpAttachment = {
   filename: string;
@@ -32,19 +34,13 @@ export async function sendSmtpMail(input: {
   inReplyTo?: string;
   references?: string[];
   attachments?: SmtpAttachment[];
-}) {
+  fromName?: string;
+}, credentials?: MailCredentials) {
   const config = getSelfHostedMailConfig();
-  const transport = nodemailer.createTransport({
-    host: config.hostname,
-    port: config.smtpPort,
-    secure: config.smtpPort === 465,
-    requireTLS: config.smtpPort !== 465,
-    auth: { user: config.mailbox, pass: config.password },
-    tls: { minVersion: "TLSv1.2", servername: config.hostname },
-  });
-
-  return transport.sendMail({
-    from: config.mailbox,
+  const mailbox = credentials?.email || config.mailbox;
+  const password = credentials?.password || config.password;
+  const message = {
+    from: input.fromName ? { name: input.fromName, address: mailbox } : mailbox,
     to: input.to,
     cc: input.cc,
     bcc: input.bcc,
@@ -54,5 +50,32 @@ export async function sendSmtpMail(input: {
     inReplyTo: input.inReplyTo,
     references: input.references,
     attachments: input.attachments,
+  };
+  const builder = nodemailer.createTransport({
+    streamTransport: true,
+    buffer: true,
+    newline: "unix",
   });
+  const built = await builder.sendMail(message);
+  if (!Buffer.isBuffer(built.message)) {
+    throw new Error("Məktubun MIME məzmunu yaradıla bilmədi.");
+  }
+  const transport = nodemailer.createTransport({
+    host: config.hostname,
+    port: config.smtpPort,
+    secure: config.smtpPort === 465,
+    requireTLS: config.smtpPort !== 465,
+    auth: { user: mailbox, pass: password },
+    tls: { minVersion: "TLSv1.2", servername: config.hostname },
+  });
+
+  const result = await transport.sendMail({
+    envelope: {
+      from: mailbox,
+      to: [...input.to, ...(input.cc || []), ...(input.bcc || [])],
+    },
+    raw: built.message,
+  });
+  await appendImapMessage("Sent", built.message, ["\\Seen"], credentials);
+  return result;
 }

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Sapiens Mail health checks every 10 minutes
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=10m
+Persistent=true
+Unit=sapiens-mail-monitor.service
+
+[Install]
+WantedBy=timers.target

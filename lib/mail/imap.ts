@@ -3,6 +3,7 @@ import "server-only";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { getSelfHostedMailConfig } from "./self-hosted-config";
+import type { MailCredentials } from "./session";
 
 export type ImapFolder = {
   path: string;
@@ -39,6 +40,16 @@ export type ImapMessageDetail = ImapMessageSummary & {
   }>;
 };
 
+export type ImapDraft = {
+  id: string;
+  recipients: string[];
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  body: string;
+  updated_at: string;
+};
+
 const addressList = (
   addresses: Array<{ address?: string; name?: string }> | undefined,
 ) =>
@@ -53,20 +64,35 @@ const addressList = (
 const stableId = (mailbox: string, uid: number) =>
   `${encodeURIComponent(mailbox)}:${uid}`;
 
-function createImapClient() {
+export function parseImapMessageId(id: string) {
+  const separator = id.lastIndexOf(":");
+  if (separator < 1) return null;
+  const mailbox = decodeURIComponent(id.slice(0, separator));
+  const uid = Number(id.slice(separator + 1));
+  if (!mailbox || !Number.isSafeInteger(uid) || uid < 1) return null;
+  return { mailbox, uid };
+}
+
+function createImapClient(credentials?: MailCredentials) {
   const config = getSelfHostedMailConfig();
   return new ImapFlow({
     host: config.hostname,
     port: config.imapPort,
     secure: true,
-    auth: { user: config.mailbox, pass: config.password },
+    auth: {
+      user: credentials?.email || config.mailbox,
+      pass: credentials?.password || config.password,
+    },
     logger: false,
     tls: { minVersion: "TLSv1.2", servername: config.hostname },
   });
 }
 
-async function withImap<T>(callback: (client: ImapFlow) => Promise<T>) {
-  const client = createImapClient();
+async function withImap<T>(
+  callback: (client: ImapFlow) => Promise<T>,
+  credentials?: MailCredentials,
+) {
+  const client = createImapClient(credentials);
   await client.connect();
   try {
     return await callback(client);
@@ -75,7 +101,7 @@ async function withImap<T>(callback: (client: ImapFlow) => Promise<T>) {
   }
 }
 
-export async function listImapFolders(): Promise<ImapFolder[]> {
+export async function listImapFolders(credentials?: MailCredentials): Promise<ImapFolder[]> {
   return withImap(async (client) => {
     const folders = await client.list();
     return folders.map((folder) => ({
@@ -83,12 +109,17 @@ export async function listImapFolders(): Promise<ImapFolder[]> {
       name: folder.name,
       specialUse: folder.specialUse || null,
     }));
-  });
+  }, credentials);
+}
+
+export async function verifyImapCredentials(credentials: MailCredentials) {
+  return withImap(async () => true, credentials);
 }
 
 export async function listImapMessages(
   mailbox = "INBOX",
   options: { limit?: number; query?: string } = {},
+  credentials?: MailCredentials,
 ): Promise<ImapMessageSummary[]> {
   const limit = Math.min(Math.max(options.limit || 100, 1), 250);
   return withImap(async (client) => {
@@ -168,12 +199,13 @@ export async function listImapMessages(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
 }
 
 export async function getImapMessage(
   mailbox: string,
   uid: number,
+  credentials?: MailCredentials,
 ): Promise<ImapMessageDetail | null> {
   return withImap(async (client) => {
     const lock = await client.getMailboxLock(mailbox);
@@ -226,13 +258,14 @@ export async function getImapMessage(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
 }
 
 export async function updateImapFlags(
   mailbox: string,
   uids: number[],
   patch: { read?: boolean; starred?: boolean },
+  credentials?: MailCredentials,
 ) {
   if (!uids.length) return;
   return withImap(async (client) => {
@@ -253,13 +286,14 @@ export async function updateImapFlags(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
 }
 
 export async function moveImapMessages(
   mailbox: string,
   uids: number[],
   destination: string,
+  credentials?: MailCredentials,
 ) {
   if (!uids.length) return;
   return withImap(async (client) => {
@@ -269,5 +303,62 @@ export async function moveImapMessages(
     } finally {
       lock.release();
     }
-  });
+  }, credentials);
+}
+
+export async function appendImapMessage(
+  mailbox: string,
+  source: Buffer,
+  flags: string[] = ["\\Seen"],
+  credentials?: MailCredentials,
+) {
+  return withImap(async (client) => {
+    await client.append(mailbox, source, flags);
+  }, credentials);
+}
+
+export async function deleteImapMessages(
+  mailbox: string,
+  uids: number[],
+  credentials?: MailCredentials,
+) {
+  if (!uids.length) return;
+  return withImap(async (client) => {
+    const lock = await client.getMailboxLock(mailbox);
+    try {
+      await client.messageDelete(uids, { uid: true });
+    } finally {
+      lock.release();
+    }
+  }, credentials);
+}
+
+export async function listImapDrafts(
+  credentials: MailCredentials,
+): Promise<ImapDraft[]> {
+  return withImap(async (client) => {
+    const lock = await client.getMailboxLock("Drafts");
+    try {
+      const exists = client.mailbox && "exists" in client.mailbox ? client.mailbox.exists : 0;
+      if (!exists) return [];
+      const start = Math.max(1, exists - 99);
+      const messages = await client.fetchAll(`${start}:*`, { uid: true, source: true });
+      const drafts = await Promise.all(messages.map(async (message) => {
+        if (!message.source) return null;
+        const parsed = await simpleParser(message.source);
+        return {
+          id: stableId("Drafts", message.uid),
+          recipients: parsed.to ? (Array.isArray(parsed.to) ? parsed.to : [parsed.to]).flatMap((x) => addressList(x.value)) : [],
+          cc: parsed.cc ? (Array.isArray(parsed.cc) ? parsed.cc : [parsed.cc]).flatMap((x) => addressList(x.value)) : [],
+          bcc: parsed.bcc ? (Array.isArray(parsed.bcc) ? parsed.bcc : [parsed.bcc]).flatMap((x) => addressList(x.value)) : [],
+          subject: parsed.subject || "",
+          body: parsed.text || "",
+          updated_at: (parsed.date || new Date()).toISOString(),
+        } satisfies ImapDraft;
+      }));
+      return drafts.filter((item): item is ImapDraft => item !== null).reverse();
+    } finally {
+      lock.release();
+    }
+  }, credentials);
 }
