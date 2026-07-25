@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { connection } from "next/server";
 import type { AdminTask, TaskStatus, TaskUpdate, TeamMember } from "@/lib/database.types";
-import { addTeamMember, createTask, markTaskSeen, updateTask } from "./actions";
+import { createTask, markTaskSeen, updateTask } from "./actions";
 
 const columns: { status: TaskStatus; title: string; hint: string }[] = [
   { status: "todo", title: "Gözləyir", hint: "Hələ başlanmayıb" },
@@ -27,22 +28,40 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export default async function TasksPage() {
+export default async function TasksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   await connection();
   const supabase = await createClient();
+  const [{ view }, { data: claimsData }] = await Promise.all([
+    searchParams,
+    supabase.auth.getClaims(),
+  ]);
+  const userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : "";
   const [tasksResult, membersResult, updatesResult] = await Promise.all([
     supabase
       .from("admin_tasks")
       .select("*, assignee:team_members(*)")
       .order("deadline", { ascending: true }),
-    supabase.from("team_members").select("*").eq("is_active", true).order("name"),
+    supabase
+      .from("team_members")
+      .select("*")
+      .eq("is_active", true)
+      .not("auth_user_id", "is", null)
+      .order("name"),
     supabase.from("task_updates").select("*").order("created_at", { ascending: false }),
   ]);
 
   const setupMissing = tasksResult.error?.code === "42P01";
-  const tasks = (tasksResult.data ?? []) as AdminTask[];
+  const allTasks = (tasksResult.data ?? []) as AdminTask[];
   const members = (membersResult.data ?? []) as TeamMember[];
   const updates = (updatesResult.data ?? []) as TaskUpdate[];
+  const mineOnly = view === "mine";
+  const tasks = mineOnly
+    ? allTasks.filter((task) => task.assignee?.auth_user_id === userId)
+    : allTasks;
   // Request-time value is intentional: overdue state must be current on every page load.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -59,9 +78,19 @@ export default async function TasksPage() {
           <h1>Tapşırıqlar</h1>
           <p>Lead-lərdən ayrı, komandanın gündəlik işlərini izləyin.</p>
         </div>
-        <div className="admin-task-summary">
-          <span><b>{openCount}</b> açıq iş</span>
-          <span className={overdueCount ? "is-overdue" : ""}><b>{overdueCount}</b> gecikib</span>
+        <div className="admin-task-heading-side">
+          <div className="admin-task-view-switch">
+            <Link href="/admin/tasks?view=mine" className={mineOnly ? "is-active" : ""}>
+              Mənim tapşırıqlarım
+            </Link>
+            <Link href="/admin/tasks" className={!mineOnly ? "is-active" : ""}>
+              Bütün tapşırıqlar
+            </Link>
+          </div>
+          <div className="admin-task-summary">
+            <span><b>{openCount}</b> açıq iş</span>
+            <span className={overdueCount ? "is-overdue" : ""}><b>{overdueCount}</b> gecikib</span>
+          </div>
         </div>
       </div>
 
@@ -72,7 +101,7 @@ export default async function TasksPage() {
         </div>
       ) : (
         <>
-          <section className="admin-task-tools">
+          {!mineOnly ? <section className="admin-task-tools">
             <form action={createTask} className="admin-panel admin-form admin-task-create">
               <div className="admin-panel__header">
                 <div><h2>Yeni tapşırıq</h2><p>Kim, nəyi və nə vaxta qədər etməlidir?</p></div>
@@ -110,18 +139,7 @@ export default async function TasksPage() {
                 <button className="admin-button admin-button--primary">Tapşırıq yarat</button>
               </div>
             </form>
-
-            <form action={addTeamMember} className="admin-panel admin-form admin-team-add">
-              <div className="admin-panel__header">
-                <div><h2>Əməkdaş əlavə et</h2><p>Tapşırıq veriləcək şəxslər</p></div>
-              </div>
-              <div>
-                <label><span>Ad, soyad *</span><input name="name" required placeholder="Ad Soyad" /></label>
-                <label><span>E-poçt</span><input name="email" type="email" placeholder="email@company.az" /></label>
-                <button className="admin-button">+ Siyahıya əlavə et</button>
-              </div>
-            </form>
-          </section>
+          </section> : null}
 
           <section className="admin-task-board">
             {columns.map((column) => {
@@ -136,6 +154,7 @@ export default async function TasksPage() {
                     {columnTasks.length ? columnTasks.map((task) => {
                       const taskUpdates = updates.filter((update) => update.task_id === task.id);
                       const overdue = task.status !== "done" && new Date(task.deadline).getTime() < now;
+                      const isAssignee = task.assignee?.auth_user_id === userId;
                       return (
                         <article className={`admin-task-card${overdue ? " is-overdue" : ""}`} key={task.id}>
                           <div className="admin-task-card__top">
@@ -153,7 +172,7 @@ export default async function TasksPage() {
                             <div><strong>{task.assignee?.name ?? "Əməkdaş"}</strong><span>{task.seen_at ? `Görüldü · ${formatDate(task.seen_at)}` : "Hələ görməyib"}</span></div>
                           </div>
 
-                          {!task.seen_at ? (
+                          {!task.seen_at && isAssignee ? (
                             <form action={markTaskSeen}>
                               <input type="hidden" name="id" value={task.id} />
                               <button className="admin-task-seen">✓ Gördüm</button>
@@ -175,7 +194,7 @@ export default async function TasksPage() {
                             </details>
                           ) : null}
 
-                          <form action={updateTask} className="admin-task-update">
+                          {isAssignee ? <form action={updateTask} className="admin-task-update">
                             <input type="hidden" name="id" value={task.id} />
                             <label>
                               <span>İş barədə qeyd *</span>
@@ -187,7 +206,7 @@ export default async function TasksPage() {
                               </select>
                               <button className="admin-button admin-button--primary">Yenilə</button>
                             </div>
-                          </form>
+                          </form> : <div className="admin-task-owner-note">Statusu məsul əməkdaş yeniləyir.</div>}
                         </article>
                       );
                     }) : <div className="admin-task-empty">Bu mərhələdə tapşırıq yoxdur.</div>}

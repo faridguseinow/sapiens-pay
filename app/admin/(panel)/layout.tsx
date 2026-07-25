@@ -17,9 +17,13 @@ export default async function AdminPanelLayout({
   }
 
   const email = typeof data.claims.email === "string" ? data.claims.email : "Admin";
-  const { data: notificationData } = await supabase
-    .from("leads")
-    .select("id,status,next_follow_up_at,profile");
+  const userId = typeof data.claims.sub === "string" ? data.claims.sub : "";
+  const [{ data: notificationData }, { data: currentMember }] = await Promise.all([
+    supabase.from("leads").select("id,status,next_follow_up_at,profile"),
+    userId
+      ? supabase.from("team_members").select("id").eq("auth_user_id", userId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
   const notificationLeads = (notificationData ?? []) as Pick<
     Lead,
     "id" | "status" | "next_follow_up_at" | "profile"
@@ -32,6 +36,14 @@ export default async function AdminPanelLayout({
       new Date(lead.next_follow_up_at).getTime() <= currentTime &&
       !["won", "closed"].includes(lead.status),
   ).length;
+  const { count: unseenTaskCount } = currentMember?.id
+    ? await supabase
+        .from("admin_tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("assignee_id", currentMember.id)
+        .neq("status", "done")
+        .is("seen_at", null)
+    : { count: 0 };
 
   return (
     <div className="admin-shell">
@@ -53,6 +65,7 @@ export default async function AdminPanelLayout({
           <Link href="/admin/tasks">
             <span>✓</span>
             Tapşırıqlar
+            {unseenTaskCount ? <b className="admin-nav__badge">{unseenTaskCount}</b> : null}
           </Link>
           <Link href="/admin/blog">
             <span>✦</span>

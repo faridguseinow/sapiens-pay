@@ -1443,9 +1443,37 @@ body {
   }
 }
 
+.admin-task-heading-side {
+  display: grid;
+  justify-items: end;
+  gap: 0.65rem;
+}
+
+.admin-task-view-switch {
+  display: flex;
+  padding: 0.22rem;
+  border: 1px solid #dfe1db;
+  border-radius: 0.72rem;
+  background: #fff;
+
+  a {
+    padding: 0.48rem 0.65rem;
+    border-radius: 0.52rem;
+    color: #777a70;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .is-active {
+    color: #343808;
+    background: #eef3a8;
+  }
+}
+
 .admin-task-tools {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(15rem, 0.8fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   margin-bottom: 1.4rem;
   align-items: start;
@@ -1733,6 +1761,14 @@ body {
   color: #91948b;
   font-size: 0.65rem;
   text-align: center;
+}
+
+.admin-task-owner-note {
+  margin-top: 0.85rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid #eff0ec;
+  color: #969990;
+  font-size: 0.58rem;
 }
 
 .admin-post-grid {
@@ -2134,6 +2170,16 @@ body {
 
   .admin-task-summary {
     width: 100%;
+  }
+
+  .admin-task-heading-side {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .admin-task-view-switch a {
+    flex: 1;
+    text-align: center;
   }
 }
 
