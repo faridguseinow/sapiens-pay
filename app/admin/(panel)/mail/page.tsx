@@ -13,6 +13,7 @@ import {
   type MailcowMailbox,
 } from "@/lib/mail/mailcow";
 import { PasswordField } from "./password-field";
+import { MailboxManager } from "./mailbox-manager";
 
 const DOMAIN = "sapiens-pay.com";
 
@@ -123,8 +124,7 @@ export default async function MailboxesPage({
                     <span>{megabytes(item.quota_used)} / {megabytes(item.quota)} MB</span>
                     <i className={active ? "is-active" : ""}>{active ? "Aktiv" : "Deaktiv"}</i>
                   </div>
-                  <details className="mail-admin-details">
-                    <summary>İdarə et</summary>
+                  <MailboxManager mailbox={item.username}>
                     <div>
                       <form action={updateMailboxPassword}>
                         <input type="hidden" name="username" value={item.username} />
@@ -149,7 +149,7 @@ export default async function MailboxesPage({
                         </form>
                       ) : <small>Əsas info mailbox-u deaktiv edilə və silinə bilməz.</small>}
                     </div>
-                  </details>
+                  </MailboxManager>
                 </article>
               );
             })}
