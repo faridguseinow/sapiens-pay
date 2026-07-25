@@ -10,7 +10,8 @@ async function requireUser() {
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims) redirect("/admin/login");
   const email = typeof data.claims.email === "string" ? data.claims.email : "Əməkdaş";
-  return { supabase, email };
+  const userId = typeof data.claims.sub === "string" ? data.claims.sub : "";
+  return { supabase, email, userId };
 }
 
 export async function createTask(formData: FormData) {
@@ -36,24 +37,33 @@ export async function createTask(formData: FormData) {
   revalidatePath("/admin/tasks");
 }
 
-export async function addTeamMember(formData: FormData) {
-  const { supabase } = await requireUser();
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  if (!name) throw new Error("Əməkdaşın adını daxil edin.");
+async function requireAssignee(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  taskId: string,
+  userId: string,
+) {
+  const { data: task } = await supabase
+    .from("admin_tasks")
+    .select("assignee_id")
+    .eq("id", taskId)
+    .single();
+  if (!task) throw new Error("Tapşırıq tapılmadı.");
 
-  const { error } = await supabase.from("team_members").insert({
-    name,
-    email: email || null,
-  });
-  if (error) throw new Error(error.code === "23505" ? "Bu əməkdaş artıq siyahıdadır." : error.message);
-  revalidatePath("/admin/tasks");
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("auth_user_id")
+    .eq("id", task.assignee_id)
+    .single();
+  if (!member || member.auth_user_id !== userId) {
+    throw new Error("Bu tapşırığı yalnız təyin edilən əməkdaş yeniləyə bilər.");
+  }
 }
 
 export async function markTaskSeen(formData: FormData) {
-  const { supabase, email } = await requireUser();
+  const { supabase, email, userId } = await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
+  await requireAssignee(supabase, id, userId);
 
   const now = new Date().toISOString();
   const { error } = await supabase.from("admin_tasks").update({ seen_at: now }).eq("id", id).is("seen_at", null);
@@ -67,12 +77,13 @@ export async function markTaskSeen(formData: FormData) {
 }
 
 export async function updateTask(formData: FormData) {
-  const { supabase, email } = await requireUser();
+  const { supabase, email, userId } = await requireUser();
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "") as TaskStatus;
   const note = String(formData.get("note") ?? "").trim();
   if (!id || !["todo", "in_progress", "done"].includes(status)) throw new Error("Status yanlışdır.");
   if (!note) throw new Error("Status dəyişikliyi üçün qısa qeyd yazın.");
+  await requireAssignee(supabase, id, userId);
 
   const { data: current, error: readError } = await supabase
     .from("admin_tasks")

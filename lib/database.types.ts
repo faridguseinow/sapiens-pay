@@ -70,6 +70,7 @@ export type Lead = {
 
 export type TeamMember = {
   id: string;
+  auth_user_id: string | null;
   name: string;
   email: string | null;
   is_active: boolean;
