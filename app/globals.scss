@@ -8514,22 +8514,82 @@ ul {
   padding: 5px 9px; border-radius: 999px; background: #f2e5e5; color: #8b3a3a; font-style: normal; font-weight: 700;
   &.is-active { background: #eaf7df; color: #3e6c1f; }
 }
-.mail-admin-details { position: relative; }
-.mail-admin-details summary { cursor: pointer; color: #4c594f; font-weight: 700; }
-.mail-admin-details > div {
-  position: absolute; z-index: 10; top: 32px; right: 0; width: min(390px, 80vw); padding: 18px;
-  border: 1px solid #d8ddd4; border-radius: 14px; background: #fff; box-shadow: 0 18px 50px #1c271c22;
+.mail-admin-manage-button {
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: #4c594f;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+
+  &::before { content: "⚙"; margin-right: 6px; color: #879286; font-size: 12px; }
 }
-.mail-admin-details form { display: flex; align-items: end; gap: 10px; padding: 10px 0; }
-.mail-admin-details label { display: grid; flex: 1; gap: 5px; color: #59625b; font-size: 12px; font-weight: 700; }
-.mail-admin-details input { min-height: 40px; padding: 8px 10px; border: 1px solid #d8ddd4; border-radius: 9px; }
+.mail-admin-modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(12, 16, 13, 0.55);
+  backdrop-filter: blur(4px);
+  animation: mail-modal-fade 0.18s ease-out;
+}
+.mail-admin-modal {
+  width: min(560px, 100%);
+  max-height: min(760px, calc(100svh - 48px));
+  overflow: auto;
+  border: 1px solid #d8ddd4;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 28px 90px rgba(9, 14, 10, 0.28);
+  animation: mail-modal-rise 0.2s ease-out;
+
+  > header {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 22px;
+    border-bottom: 1px solid #edf0eb;
+    background: #fff;
+
+    span { color: #8a938c; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    h2 { margin-top: 3px; font-size: 19px; letter-spacing: -0.03em; }
+    button {
+      width: 34px; height: 34px; border: 1px solid #dfe3dc; border-radius: 10px;
+      background: #f7f9f5; color: #4c554e; cursor: pointer; font-size: 23px; line-height: 1;
+    }
+  }
+
+  &__content { padding: 10px 22px 22px; }
+}
+.mail-admin-modal form { display: flex; align-items: end; gap: 10px; padding: 12px 0; }
+.mail-admin-modal label { display: grid; flex: 1; gap: 5px; color: #59625b; font-size: 12px; font-weight: 700; }
+.mail-admin-modal input { min-height: 40px; padding: 8px 10px; border: 1px solid #d8ddd4; border-radius: 9px; }
 .mail-admin-delete { margin-top: 8px; border-top: 1px solid #eee; }
 .mail-admin-delete button { color: #9a2727; }
+
+@keyframes mail-modal-fade {
+  from { opacity: 0; }
+}
+
+@keyframes mail-modal-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+}
 
 @media (max-width: 900px) {
   .mail-admin-form { grid-template-columns: 1fr; }
   .mail-admin-item { grid-template-columns: 1fr auto; }
   .mail-admin-usage { grid-column: 1 / -1; flex-wrap: wrap; }
+  .mail-admin-modal-backdrop { padding: 12px; }
+  .mail-admin-modal { max-height: calc(100svh - 24px); }
+  .mail-admin-modal form { align-items: stretch; flex-direction: column; }
+  .mail-admin-modal form .admin-button { width: 100%; }
 }
 
 @media print {
