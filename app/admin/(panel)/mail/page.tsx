@@ -14,6 +14,8 @@ import {
 } from "@/lib/mail/mailcow";
 import { PasswordField } from "./password-field";
 import { MailboxManager } from "./mailbox-manager";
+import { createClient } from "@/lib/supabase/server";
+import { isMailAdminOwner } from "@/lib/mail/admin-access";
 
 const DOMAIN = "sapiens-pay.com";
 
@@ -33,6 +35,9 @@ export default async function MailboxesPage({
   }>;
 }) {
   const params = await searchParams;
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const canManageMail = isMailAdminOwner(claimsData?.claims?.email);
   let mailboxes: MailcowMailbox[] = [];
   let aliases: MailcowAlias[] = [];
   let connectionError = false;
@@ -124,7 +129,7 @@ export default async function MailboxesPage({
                     <span>{megabytes(item.quota_used)} / {megabytes(item.quota)} MB</span>
                     <i className={active ? "is-active" : ""}>{active ? "Aktiv" : "Deaktiv"}</i>
                   </div>
-                  <MailboxManager mailbox={item.username}>
+                  {canManageMail ? <MailboxManager mailbox={item.username}>
                     <div>
                       <form action={updateMailboxPassword}>
                         <input type="hidden" name="username" value={item.username} />
@@ -149,7 +154,7 @@ export default async function MailboxesPage({
                         </form>
                       ) : <small>Əsas info mailbox-u deaktiv edilə və silinə bilməz.</small>}
                     </div>
-                  </MailboxManager>
+                  </MailboxManager> : null}
                 </article>
               );
             })}
@@ -168,7 +173,7 @@ export default async function MailboxesPage({
           {aliases.map((item) => <article className="mail-admin-item" key={item.id}>
             <div className="mail-admin-identity"><b>↪</b><span><strong>{item.address}</strong><small>→ {item.goto}</small></span></div>
             <span className="mail-admin-usage"><i className={String(item.active) === "1" ? "is-active" : ""}>{String(item.active) === "1" ? "Aktiv" : "Deaktiv"}</i></span>
-            <form action={removeAlias}><input type="hidden" name="id" value={item.id}/><button className="admin-button">Sil</button></form>
+            {canManageMail ? <form action={removeAlias}><input type="hidden" name="id" value={item.id}/><button className="admin-button">Sil</button></form> : null}
           </article>)}
           {!aliases.length ? <div className="admin-empty">Alias yaradılmayıb.</div> : null}
         </div>

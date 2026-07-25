@@ -12,6 +12,7 @@ import {
   deleteMailcowMailbox,
   setMailcowMailboxActive,
 } from "@/lib/mail/mailcow";
+import { isMailAdminOwner } from "@/lib/mail/admin-access";
 
 const DOMAIN = "sapiens-pay.com";
 const PRIMARY_MAILBOX = "info@sapiens-pay.com";
@@ -20,6 +21,16 @@ async function requireAdmin() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims) redirect("/admin/login");
+  return data.claims;
+}
+
+async function requireMailOwner() {
+  const claims = await requireAdmin();
+  if (!isMailAdminOwner(claims.email)) {
+    redirect(
+      `/admin/mail?error=${encodeURIComponent("Bu əməliyyat yalnız mail idarəçisinə açıqdır.")}`,
+    );
+  }
 }
 
 function mailbox(value: FormDataEntryValue | null) {
@@ -109,7 +120,7 @@ export async function createMailbox(formData: FormData) {
 }
 
 export async function setMailboxStatus(formData: FormData) {
-  await requireAdmin();
+  await requireMailOwner();
   try {
     const username = mailbox(formData.get("username"));
     const active = String(formData.get("active")) === "1";
@@ -124,7 +135,7 @@ export async function setMailboxStatus(formData: FormData) {
 }
 
 export async function updateMailboxPassword(formData: FormData) {
-  await requireAdmin();
+  await requireMailOwner();
   try {
     const username = mailbox(formData.get("username"));
     assertMailcowSuccess(
@@ -140,7 +151,7 @@ export async function updateMailboxPassword(formData: FormData) {
 }
 
 export async function removeMailbox(formData: FormData) {
-  await requireAdmin();
+  await requireMailOwner();
   try {
     const username = mailbox(formData.get("username"));
     const confirmation = String(formData.get("confirmation") ?? "").trim();
@@ -166,7 +177,7 @@ export async function createAlias(formData: FormData) {
 }
 
 export async function removeAlias(formData: FormData) {
-  await requireAdmin();
+  await requireMailOwner();
   try {
     const id = Number(formData.get("id"));
     if (!Number.isSafeInteger(id) || id < 1) throw new Error("Invalid alias");
