@@ -31,7 +31,6 @@ export default async function MailboxesPage({
     error?: string;
     displayName?: string;
     localPart?: string;
-    quotaMb?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -91,14 +90,11 @@ export default async function MailboxesPage({
             </span>
           </label>
           <PasswordField />
-          <label>
-            Yaddaş limiti
-            <select name="quotaMb" defaultValue={params.quotaMb || "5120"}>
-              <option value="2048">2 GB</option>
-              <option value="5120">5 GB</option>
-              <option value="10240">10 GB</option>
-            </select>
-          </label>
+          <div className="mail-admin-quota">
+            <span>Yaddaş limiti</span>
+            <strong>10 GB</strong>
+            <small>Yeni mailbox-lar üçün daimi maksimum limit</small>
+          </div>
           <button className="admin-button admin-button--primary">+ Ünvan yarat</button>
         </form>
       </section>

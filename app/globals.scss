@@ -8538,6 +8538,20 @@ ul {
 .mail-admin-password { display: flex; align-items: stretch; gap: 6px; }
 .mail-admin-password input { min-width: 0; flex: 1; }
 .mail-admin-password button { padding: 0 10px; border: 1px solid #d8ddd4; border-radius: 9px; background: #f7f9f5; color: #465048; font-weight: 700; cursor: pointer; }
+.mail-admin-quota {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-height: 72px;
+  padding: 10px 14px;
+  border: 1px solid #dce3d5;
+  border-radius: 10px;
+  background: #f6faef;
+
+  > span { color: #59625b; font-size: 12px; font-weight: 700; }
+  > strong { color: #3f651d; font-size: 18px; }
+  > small { color: #7a847d; font-size: 10px; font-weight: 500; }
+}
 .mail-admin-list { display: grid; }
 .mail-admin-item {
   display: grid; grid-template-columns: minmax(240px, 1fr) auto auto; align-items: center;
