@@ -100,13 +100,13 @@ export async function createMailbox(formData: FormData) {
     .trim()
     .toLowerCase();
   const displayName = String(formData.get("displayName") ?? "").trim();
-  const quotaMb = Number(formData.get("quotaMb") ?? 5120);
+  const quotaMb = 10240;
   try {
     if (!/^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/.test(localPart)) {
       throw new Error("Ünvan adı yanlışdır.");
     }
-    if (!displayName || ![2048, 5120, 10240].includes(quotaMb)) {
-      throw new Error("Ad və ya yaddaş limiti yanlışdır.");
+    if (!displayName) {
+      throw new Error("Görünən ad yanlışdır.");
     }
     assertMailcowSuccess(
       await createMailcowMailbox({
@@ -120,7 +120,6 @@ export async function createMailbox(formData: FormData) {
     failed(error, {
       displayName: displayName.slice(0, 80),
       localPart: localPart.slice(0, 64),
-      quotaMb: String(quotaMb),
     });
   }
   done("Yeni mail ünvanı yaradıldı.");
