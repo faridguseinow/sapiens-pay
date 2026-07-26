@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/auth/access";
 import { logout } from "../actions";
 import type { Lead } from "@/lib/database.types";
 
@@ -9,15 +8,10 @@ export default async function AdminPanelLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
+  const { supabase, claims } = await requireRole("admin", "/admin/login");
 
-  if (!data?.claims) {
-    redirect("/admin/login");
-  }
-
-  const email = typeof data.claims.email === "string" ? data.claims.email : "Admin";
-  const userId = typeof data.claims.sub === "string" ? data.claims.sub : "";
+  const email = typeof claims.email === "string" ? claims.email : "Admin";
+  const userId = typeof claims.sub === "string" ? claims.sub : "";
   const [{ data: notificationData }, { data: currentMember }] = await Promise.all([
     supabase.from("leads").select("id,status,next_follow_up_at,profile"),
     userId
@@ -66,6 +60,14 @@ export default async function AdminPanelLayout({
             <span>✓</span>
             Tapşırıqlar
             {unseenTaskCount ? <b className="admin-nav__badge">{unseenTaskCount}</b> : null}
+          </Link>
+          <Link href="/admin/sales">
+            <span>◈</span>
+            Satış CRM
+          </Link>
+          <Link href="/admin/team">
+            <span>♙</span>
+            Komanda
           </Link>
           <Link href="/admin/blog">
             <span>✦</span>

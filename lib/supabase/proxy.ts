@@ -23,14 +23,22 @@ export async function updateSession(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const isLoginPage = request.nextUrl.pathname === "/admin/login";
+  const isSalesLoginPage = request.nextUrl.pathname === "/sales/login";
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+  const isSalesRoute = request.nextUrl.pathname.startsWith("/sales");
 
   if (isAdminRoute && !isLoginPage && !data?.claims) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
+  if (isSalesRoute && !isSalesLoginPage && !data?.claims) {
+    return NextResponse.redirect(new URL("/sales/login", request.url));
+  }
 
   if (isLoginPage && data?.claims) {
     return NextResponse.redirect(new URL("/admin", request.url));
+  }
+  if (isSalesLoginPage && data?.claims) {
+    return NextResponse.redirect(new URL("/sales", request.url));
   }
 
   return response;
