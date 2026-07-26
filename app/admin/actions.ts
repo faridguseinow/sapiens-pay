@@ -14,6 +14,13 @@ async function requireAdmin() {
   if (error || !data?.claims) {
     redirect("/admin/login");
   }
+  const userId = typeof data.claims.sub === "string" ? data.claims.sub : "";
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+  if (member?.role !== "admin") redirect("/sales");
 
   return supabase;
 }
@@ -27,7 +34,7 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     if (error.code === "email_not_confirmed") {
@@ -38,6 +45,16 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
     }
 
     return { error: "E-poçt və ya şifrə yanlışdır." };
+  }
+
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("auth_user_id", authData.user.id)
+    .maybeSingle();
+  if (member?.role !== "admin") {
+    await supabase.auth.signOut();
+    return { error: "Bu hesab satış panelinə aiddir. Satış girişindən istifadə edin." };
   }
 
   redirect("/admin");

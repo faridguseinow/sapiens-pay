@@ -11,11 +11,17 @@ async function requireUser() {
   if (error || !data?.claims) redirect("/admin/login");
   const email = typeof data.claims.email === "string" ? data.claims.email : "Əməkdaş";
   const userId = typeof data.claims.sub === "string" ? data.claims.sub : "";
-  return { supabase, email, userId };
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+  return { supabase, email, userId, role: member?.role };
 }
 
 export async function createTask(formData: FormData) {
-  const { supabase, email } = await requireUser();
+  const { supabase, email, role } = await requireUser();
+  if (role !== "admin") throw new Error("Tapşırığı yalnız admin yarada bilər.");
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const assigneeId = String(formData.get("assigneeId") ?? "");
@@ -35,6 +41,8 @@ export async function createTask(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/tasks");
+  revalidatePath("/sales");
+  revalidatePath("/sales/tasks");
 }
 
 async function requireAssignee(
@@ -74,6 +82,8 @@ export async function markTaskSeen(formData: FormData) {
     note: "Tapşırığı gördü.",
   });
   revalidatePath("/admin/tasks");
+  revalidatePath("/sales");
+  revalidatePath("/sales/tasks");
 }
 
 export async function updateTask(formData: FormData) {
@@ -112,4 +122,6 @@ export async function updateTask(formData: FormData) {
   });
   if (updateError) throw new Error(updateError.message);
   revalidatePath("/admin/tasks");
+  revalidatePath("/sales");
+  revalidatePath("/sales/tasks");
 }

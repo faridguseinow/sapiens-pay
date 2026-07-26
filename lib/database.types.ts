@@ -3,6 +3,14 @@ export type PostStatus = "draft" | "published";
 export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "closed";
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";
+export type UserRole = "admin" | "sales";
+export type SalesCustomerStatus =
+  | "new"
+  | "contacted"
+  | "interested"
+  | "proposal"
+  | "won"
+  | "lost";
 
 export type BlogPost = {
   id: string;
@@ -73,6 +81,7 @@ export type TeamMember = {
   auth_user_id: string | null;
   name: string;
   email: string | null;
+  role: UserRole;
   is_active: boolean;
   created_at: string;
 };
@@ -101,4 +110,20 @@ export type TaskUpdate = {
   from_status: TaskStatus | null;
   to_status: TaskStatus | null;
   created_at: string;
+};
+
+export type SalesCustomer = {
+  id: string;
+  representative_id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  service_key: string;
+  status: SalesCustomerStatus;
+  potential_value: number;
+  notes: string | null;
+  next_contact_at: string | null;
+  created_at: string;
+  updated_at: string;
+  representative?: TeamMember | null;
 };

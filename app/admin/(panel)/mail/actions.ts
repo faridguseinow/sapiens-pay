@@ -21,6 +21,13 @@ async function requireAdmin() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims) redirect("/admin/login");
+  const userId = typeof data.claims.sub === "string" ? data.claims.sub : "";
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+  if (member?.role !== "admin") redirect("/sales");
   return data.claims;
 }
 
