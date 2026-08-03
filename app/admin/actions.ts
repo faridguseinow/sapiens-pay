@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { LeadStatus, LocaleCode, PostStatus } from "@/lib/database.types";
+import { parseCommaList, slugify } from "@/lib/blog-utils";
 
 export type AuthState = { error?: string } | undefined;
 
@@ -66,29 +67,20 @@ export async function logout() {
   redirect("/admin/login");
 }
 
-function slugify(value: string) {
-  return value
-    .toLocaleLowerCase("az")
-    .replace(/[а-яё]/g, (letter) => {
-      const map: Record<string, string> = {
-        а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo",
-        ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m",
-        н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u",
-        ф: "f", х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "shch",
-        ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
-      };
-      return map[letter] ?? "";
-    })
-    .replace(/ə/g, "e")
-    .replace(/ı/g, "i")
-    .replace(/ö/g, "o")
-    .replace(/ü/g, "u")
-    .replace(/ş/g, "s")
-    .replace(/ç/g, "c")
-    .replace(/ğ/g, "g")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 96);
+function listValue(value: FormDataEntryValue | null, maxItems = 12) {
+  return parseCommaList(String(value ?? ""), maxItems);
+}
+
+function optionalHttpUrl(value: FormDataEntryValue | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
+    return url.toString();
+  } catch {
+    throw new Error("Canonical və Open Graph ünvanları etibarlı HTTP(S) URL olmalıdır.");
+  }
 }
 
 export async function savePost(formData: FormData) {
@@ -108,6 +100,17 @@ export async function savePost(formData: FormData) {
   const category = String(formData.get("category") ?? "").trim();
   const scheduledAt = String(formData.get("scheduledAt") ?? "").trim();
   const image = formData.get("coverImage");
+
+  if (!["draft", "published", "scheduled", "archived"].includes(status)) {
+    throw new Error("Yazının vəziyyəti yanlışdır.");
+  }
+  if (status === "scheduled" && !scheduledAt) {
+    throw new Error("Planlaşdırılmış yazı üçün yayım tarixini seçin.");
+  }
+  const publicationMoment = scheduledAt ? new Date(scheduledAt) : null;
+  if (publicationMoment && Number.isNaN(publicationMoment.getTime())) {
+    throw new Error("Yayım tarixi yanlışdır.");
+  }
 
   if (!title || !content || !["az", "ru", "en"].includes(locale)) {
     throw new Error("Başlıq, dil və məzmun mütləqdir.");
@@ -138,36 +141,73 @@ export async function savePost(formData: FormData) {
     throw new Error("URL adı yaradıla bilmədi. URL adı sahəsini latın hərfləri ilə doldurun.");
   }
 
+  const previousPost = id
+    ? await supabase.from("posts").select("slug,locale,published_at").eq("id", id).single()
+    : null;
+  if (previousPost?.error) throw new Error(previousPost.error.message);
+
+  const duplicateQuery = supabase.from("posts").select("id", { count: "exact", head: true })
+    .eq("locale", locale).eq("slug", slug);
+  if (id) duplicateQuery.neq("id", id);
+  const { count: duplicateCount, error: duplicateError } = await duplicateQuery;
+  if (duplicateError) throw new Error(duplicateError.message);
+  if (duplicateCount) throw new Error("Bu dil üçün həmin URL adı artıq istifadə olunur.");
+
+  const originalPublishedAt = previousPost?.data?.published_at || existingPublishedAt || null;
   const payload = {
     title,
+    subtitle: String(formData.get("subtitle") ?? "").trim().slice(0, 240) || null,
     slug,
     locale,
     excerpt: excerpt || null,
     content,
     cover_image_url: coverImageUrl,
+    featured_image_alt: String(formData.get("featuredImageAlt") ?? "").trim().slice(0, 240) || null,
     seo_title: seoTitle.slice(0, 70) || null,
     seo_description: seoDescription.slice(0, 170) || null,
     category: category.slice(0, 80) || null,
-    scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+    tags: listValue(formData.get("tags")),
+    author: String(formData.get("author") ?? "").trim().slice(0, 120) || null,
+    is_featured: formData.get("isFeatured") === "on",
+    focus_keyword: String(formData.get("focusKeyword") ?? "").trim().slice(0, 120) || null,
+    secondary_keywords: listValue(formData.get("secondaryKeywords")),
+    canonical_url: optionalHttpUrl(formData.get("canonicalUrl")),
+    og_title: String(formData.get("ogTitle") ?? "").trim().slice(0, 120) || null,
+    og_description: String(formData.get("ogDescription") ?? "").trim().slice(0, 240) || null,
+    og_image_url: optionalHttpUrl(formData.get("ogImage")),
+    robots_index: formData.get("robotsIndex") === "on",
+    include_in_sitemap: formData.get("includeInSitemap") === "on",
+    scheduled_at: status === "scheduled" && publicationMoment ? publicationMoment.toISOString() : null,
     status,
     published_at:
       status === "published"
-        ? scheduledAt
-          ? new Date(scheduledAt).toISOString()
-          : existingPublishedAt || new Date().toISOString()
-        : null,
+        ? originalPublishedAt || new Date().toISOString()
+        : status === "scheduled" && publicationMoment
+          ? publicationMoment.toISOString()
+          : originalPublishedAt,
     ...(translationGroupId ? { translation_group_id: translationGroupId } : {}),
   };
 
   if (id) {
     const { error } = await supabase.from("posts").update(payload).eq("id", id);
     if (error) throw new Error(error.message);
+    const previous = previousPost?.data;
+    if (previous && (previous.slug !== slug || previous.locale !== locale)) {
+      const { error: redirectError } = await supabase.from("post_slug_redirects").upsert({
+        post_id: id,
+        locale: previous.locale,
+        old_slug: previous.slug,
+      }, { onConflict: "locale,old_slug" });
+      if (redirectError) throw new Error(redirectError.message);
+    }
   } else {
     const { error } = await supabase.from("posts").insert(payload);
     if (error) throw new Error(error.message);
   }
 
   revalidatePath("/");
+  revalidatePath(`/${locale}/blog`);
+  revalidatePath(`/${locale}/blog/${slug}`);
   revalidatePath("/admin/blog");
   redirect("/admin/blog");
 }
