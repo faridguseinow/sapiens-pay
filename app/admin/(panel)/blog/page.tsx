@@ -39,9 +39,9 @@ export default async function AdminBlogPage() {
             </div>
             <div className="admin-post-card__body">
               <span className={`admin-status admin-status--${post.status}`}>
-                {post.status === "published" && post.published_at && new Date(post.published_at) > new Date()
-                  ? "Planlaşdırılıb"
-                  : post.status === "published" ? "Yayımlanıb" : "Qaralama"}
+                {post.status === "published" ? "Yayımlanıb"
+                  : post.status === "scheduled" ? "Planlaşdırılıb"
+                  : post.status === "archived" ? "Arxiv" : "Qaralama"}
               </span>
               {post.category ? <small>{post.category}</small> : null}
               <h2>{post.title}</h2>

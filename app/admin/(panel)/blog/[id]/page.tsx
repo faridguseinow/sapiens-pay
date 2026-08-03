@@ -26,6 +26,8 @@ export default async function EditPostPage({
           <h1>Yazını redaktə et</h1>
           <p>Son yenilənmə: {new Date(post.updated_at).toLocaleString("az-AZ")}</p>
         </div>
+        <div className="admin-heading-actions">
+          <Link href={`/admin/blog/${post.id}/preview`} target="_blank" className="admin-button">Təhlükəsiz önizləmə ↗</Link>
         {post.status === "published" ? (
           <Link
             href={`/${post.locale}/blog/${post.slug}`}
@@ -35,6 +37,7 @@ export default async function EditPostPage({
             Saytda bax ↗
           </Link>
         ) : null}
+        </div>
       </div>
       <PostForm post={post} />
     </main>
