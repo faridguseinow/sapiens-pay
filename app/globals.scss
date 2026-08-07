@@ -4957,7 +4957,7 @@ ul {
       flex-wrap: wrap;
       gap: 0.38rem;
 
-      span {
+      a {
         min-height: 2rem;
         display: inline-flex;
         align-items: center;
@@ -4968,6 +4968,24 @@ ul {
         color: #5d6058;
         font-size: 0.65rem;
         font-weight: 600;
+        text-decoration: none;
+        transition:
+          border-color 160ms ease,
+          background-color 160ms ease,
+          color 160ms ease,
+          transform 160ms ease;
+
+        &:hover {
+          border-color: rgba(154, 169, 15, 0.42);
+          background: rgba(255, 255, 255, 0.96);
+          color: #24271f;
+          transform: translateY(-1px);
+        }
+
+        &:focus-visible {
+          outline: 2px solid #9aa90f;
+          outline-offset: 2px;
+        }
       }
     }
 
@@ -5112,7 +5130,7 @@ ul {
       &__platforms {
         max-width: 12rem;
 
-        span:nth-child(n + 4) {
+        a:nth-child(n + 4) {
           display: none;
         }
       }

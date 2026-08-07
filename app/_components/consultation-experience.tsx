@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Dictionary, Locale } from "../lib/i18n";
 import { LeadQuiz, type LeadContext, type ServiceKey } from "./lead-quiz";
@@ -10,7 +11,13 @@ const closeLabels: Record<Locale, string> = {
   en: "Close",
 };
 
-const platformLabels = ["Wise", "Payoneer", "Shopify", "Stripe", "PayPal"];
+const platforms = [
+  { label: "Wise", servicePath: "foreign-bank-accounts" },
+  { label: "Payoneer", servicePath: "foreign-bank-accounts" },
+  { label: "Shopify", servicePath: "shopify-payments" },
+  { label: "Stripe", servicePath: "international-payments" },
+  { label: "PayPal", servicePath: "international-payments" },
+] as const;
 
 export function ConsultationExperience({
   locale,
@@ -78,8 +85,13 @@ export function ConsultationExperience({
             <div className="hero-card__top">
               <p className="tag">{copy.heroTag}</p>
               <div className="hero-card__platforms" aria-label="Supported platforms">
-                {platformLabels.map((platform) => (
-                  <span key={platform}>{platform}</span>
+                {platforms.map((platform) => (
+                  <Link
+                    key={platform.label}
+                    href={`/${locale}/services/${platform.servicePath}`}
+                  >
+                    {platform.label}
+                  </Link>
                 ))}
               </div>
             </div>
