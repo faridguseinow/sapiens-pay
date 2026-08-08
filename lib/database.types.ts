@@ -11,6 +11,15 @@ export type SalesCustomerStatus =
   | "proposal"
   | "won"
   | "lost";
+export type CampaignStatus = "draft" | "active" | "paused" | "completed";
+export type ExpenseType =
+  | "advertising"
+  | "influencer"
+  | "content"
+  | "creative"
+  | "agency"
+  | "software"
+  | "other";
 
 export type BlogPost = {
   id: string;
@@ -78,6 +87,29 @@ export type Lead = {
   package_name: string | null;
   source_path: string | null;
   source_label: string | null;
+  source_id: string | null;
+  campaign_id: string | null;
+  product_id: string | null;
+  lead_medium: string | null;
+  lead_content: string | null;
+  lead_term: string | null;
+  first_touch_source_id: string | null;
+  first_touch_medium: string | null;
+  first_touch_campaign: string | null;
+  last_touch_source_id: string | null;
+  last_touch_medium: string | null;
+  last_touch_campaign: string | null;
+  referrer: string | null;
+  landing_page: string | null;
+  country: string | null;
+  qualified_at: string | null;
+  contacted_at: string | null;
+  assigned_at: string | null;
+  converted_at: string | null;
+  paid_at: string | null;
+  assigned_sdr_id: string | null;
+  assigned_sales_id: string | null;
+  deal_value: number | null;
   estimated_loss: number;
   locale: LocaleCode;
   profile: LeadProfile;
@@ -134,9 +166,101 @@ export type SalesCustomer = {
   service_key: string;
   status: SalesCustomerStatus;
   potential_value: number;
+  lead_id: string | null;
+  source_id: string | null;
+  campaign_id: string | null;
+  product_id: string | null;
+  country: string | null;
+  won_at: string | null;
   notes: string | null;
   next_contact_at: string | null;
   created_at: string;
   updated_at: string;
   representative?: TeamMember | null;
+};
+
+export type MarketingSource = {
+  id: string;
+  key: string;
+  name: string;
+  channel: string;
+  is_paid: boolean;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type AnalyticsProduct = {
+  id: string;
+  key: string;
+  name: string;
+  category: string | null;
+  is_recurring: boolean;
+  target_margin_percent: number | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type MarketingCampaign = {
+  id: string;
+  name: string;
+  platform: string;
+  source_id: string;
+  external_id: string | null;
+  objective: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  status: CampaignStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MarketingDailyMetric = {
+  id: string;
+  metric_date: string;
+  source_id: string;
+  campaign_id: string | null;
+  currency: string;
+  spend: number;
+  spend_azn: number;
+  impressions: number;
+  reach: number;
+  clicks: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MarketingExpense = {
+  id: string;
+  expense_date: string;
+  amount: number;
+  amount_azn: number;
+  currency: string;
+  platform: string | null;
+  source_id: string | null;
+  campaign_id: string | null;
+  expense_type: ExpenseType;
+  description: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerPayment = {
+  id: string;
+  customer_id: string;
+  lead_id: string | null;
+  product_id: string | null;
+  source_id: string | null;
+  campaign_id: string | null;
+  amount: number;
+  amount_azn: number;
+  direct_cost_azn: number | null;
+  currency: string;
+  payment_status: "pending" | "paid" | "refunded" | "failed";
+  revenue_type: "one_time" | "recurring";
+  paid_at: string | null;
+  external_reference: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
 };

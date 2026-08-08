@@ -22,6 +22,12 @@ export type LeadContext = {
 };
 
 type Choice = { value: string; label: string };
+type LeadTracking = {
+  first: { source: string; medium: string; campaign: string };
+  last: { source: string; medium: string; campaign: string; content: string; term: string };
+  landingPage: string;
+  referrer: string;
+};
 
 const services: Record<Locale, Choice[]> = {
   az: [
@@ -352,6 +358,28 @@ export function LeadQuiz({
   const [countryCode, setCountryCode] = useState<CountryCode>("AZ");
   const [localPhone, setLocalPhone] = useState("");
   const [preferredContact, setPreferredContact] = useState("");
+  const [tracking, setTracking] = useState<LeadTracking | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const current = {
+      source: params.get("utm_source") ?? "",
+      medium: params.get("utm_medium") ?? "",
+      campaign: params.get("utm_campaign") ?? "",
+      content: params.get("utm_content") ?? "",
+      term: params.get("utm_term") ?? "",
+    };
+    const storageKey = "sapiens_first_touch";
+    let first = { source: current.source, medium: current.medium, campaign: current.campaign };
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (saved) first = { ...first, ...JSON.parse(saved) };
+      else if (current.source) window.localStorage.setItem(storageKey, JSON.stringify(first));
+    } catch {
+      // Tracking still works for this visit when storage is unavailable.
+    }
+    setTracking({ first, last: current, landingPage: window.location.href, referrer: document.referrer });
+  }, []);
 
   const selectedService = services[locale].find((item) => item.value === service);
   const currentTitle = isDirectPackageLead
@@ -409,6 +437,7 @@ export function LeadQuiz({
             sourcePath: context.sourcePath || window.location.pathname,
             sourceLabel: context.sourceLabel || "consultation",
           },
+          tracking,
           qa: [
             { question: c.titles[0], answer: selectedService?.label ?? service },
             { question: c.package, answer: packageName },

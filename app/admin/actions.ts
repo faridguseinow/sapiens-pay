@@ -230,12 +230,22 @@ export async function updateLead(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim();
   const nextFollowUpAt = String(formData.get("nextFollowUpAt") ?? "").trim();
   const priority = String(formData.get("priority") ?? "medium");
+  const sourceId = String(formData.get("sourceId") ?? "").trim() || null;
+  const campaignId = String(formData.get("campaignId") ?? "").trim() || null;
+  const productId = String(formData.get("productId") ?? "").trim() || null;
+  const assignedSdrId = String(formData.get("assignedSdrId") ?? "").trim() || null;
+  const assignedSalesId = String(formData.get("assignedSalesId") ?? "").trim() || null;
+  const dealValueRaw = String(formData.get("dealValue") ?? "").trim();
+  const dealValue = dealValueRaw ? Number(dealValueRaw) : null;
 
   if (!["new", "contacted", "qualified", "won", "closed"].includes(status)) {
     throw new Error("Yanlış lead statusu.");
   }
   if (!["high", "medium", "low"].includes(priority)) {
     throw new Error("Yanlış prioritet.");
+  }
+  if (dealValue !== null && (!Number.isFinite(dealValue) || dealValue < 0)) {
+    throw new Error("Satış məbləği yanlışdır.");
   }
 
   const { data: currentLead } = await supabase
@@ -255,6 +265,14 @@ export async function updateLead(formData: FormData) {
       notes: notes || null,
       profile: { ...currentProfile, priority },
       next_follow_up_at: nextFollowUpAt ? new Date(nextFollowUpAt).toISOString() : null,
+      source_id: sourceId,
+      last_touch_source_id: sourceId,
+      campaign_id: campaignId,
+      product_id: productId,
+      assigned_sdr_id: assignedSdrId,
+      assigned_sales_id: assignedSalesId,
+      assigned_at: assignedSdrId || assignedSalesId ? new Date().toISOString() : null,
+      deal_value: dealValue,
     })
     .eq("id", id);
 

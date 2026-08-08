@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Lead } from "@/lib/database.types";
+import type { AnalyticsProduct, Lead, MarketingCampaign, MarketingSource, TeamMember } from "@/lib/database.types";
 import { deleteLead, updateLead } from "../../../actions";
 import { MarkLeadRead } from "./mark-read";
 
@@ -29,13 +29,23 @@ export default async function LeadDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("leads").select("*").eq("id", id).single();
+  const [{ data }, sourcesResult, campaignsResult, productsResult, teamResult] = await Promise.all([
+    supabase.from("leads").select("*").eq("id", id).single(),
+    supabase.from("marketing_sources").select("*").eq("is_active", true).order("name"),
+    supabase.from("marketing_campaigns").select("*").order("name"),
+    supabase.from("analytics_products").select("*").eq("is_active", true).order("name"),
+    supabase.from("team_members").select("*").eq("is_active", true).order("name"),
+  ]);
   if (!data) notFound();
 
   const lead = data as Lead;
   const profile = lead.profile ?? {};
   const isLegacyLead = !profile.service;
   const sourceLabel = lead.source_label || profile.sourceLabel || "";
+  const sources = (sourcesResult.data ?? []) as MarketingSource[];
+  const campaigns = (campaignsResult.data ?? []) as MarketingCampaign[];
+  const products = (productsResult.data ?? []) as AnalyticsProduct[];
+  const team = (teamResult.data ?? []) as TeamMember[];
   const localFollowUp = lead.next_follow_up_at
     ? new Date(lead.next_follow_up_at).toISOString().slice(0, 16)
     : "";
@@ -133,6 +143,12 @@ export default async function LeadDetailPage({
                 <option value="low">Aşağı</option>
               </select>
             </label>
+            <label><span>Marketinq mənbəyi</span><select name="sourceId" defaultValue={lead.source_id ?? ""}><option value="">Mənbə yoxdur</option>{sources.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Kampaniya</span><select name="campaignId" defaultValue={lead.campaign_id ?? ""}><option value="">Kampaniya yoxdur</option>{campaigns.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Məhsul</span><select name="productId" defaultValue={lead.product_id ?? ""}><option value="">Məhsul seçilməyib</option>{products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>SDR</span><select name="assignedSdrId" defaultValue={lead.assigned_sdr_id ?? ""}><option value="">Təyin edilməyib</option>{team.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Satış meneceri</span><select name="assignedSalesId" defaultValue={lead.assigned_sales_id ?? ""}><option value="">Təyin edilməyib</option>{team.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label><span>Potensial satış məbləği (AZN)</span><input type="number" min="0" step="0.01" name="dealValue" defaultValue={lead.deal_value ?? ""} /></label>
             <label>
               <span>Növbəti əlaqə</span>
               <input type="datetime-local" name="nextFollowUpAt" defaultValue={localFollowUp} />

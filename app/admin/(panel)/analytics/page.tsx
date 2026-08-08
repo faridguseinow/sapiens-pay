@@ -1,0 +1,125 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { getAnalyticsSnapshot, parseAnalyticsFilters, type PerformanceRow } from "@/lib/analytics";
+import type { SalesCustomer } from "@/lib/database.types";
+import { createCampaign, createMarketingExpense, createMarketingSource, createPayment, upsertDailyMetric } from "./actions";
+
+type Query = Record<string, string | string[] | undefined>;
+
+const views = [
+  ["overview", "İcmal"], ["acquisition", "Cəlbetmə"], ["funnel", "Satış hunisi"], ["campaigns", "Kampaniyalar"],
+  ["sources", "Mənbələr"], ["sales", "Satış"], ["expenses", "Xərclər"], ["revenue", "Gəlir"], ["reports", "Hesabatlar"],
+] as const;
+
+const money = (value: number | null) => value === null ? "Məlumat yetərli deyil" : `${new Intl.NumberFormat("az-AZ", { maximumFractionDigits: 2 }).format(value)} ₼`;
+const number = (value: number) => new Intl.NumberFormat("az-AZ").format(value);
+const percent = (value: number | null) => value === null ? "—" : `${value.toFixed(1)}%`;
+const decimal = (value: number | null) => value === null ? "—" : value.toFixed(2);
+
+function hrefWith(query: Query, changes: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) if (typeof value === "string" && value) params.set(key, value);
+  for (const [key, value] of Object.entries(changes)) {
+    if (value) params.set(key, value);
+    else params.delete(key);
+  }
+  return `/admin/analytics?${params.toString()}`;
+}
+
+function Change({ value, inverse = false }: { value: number | null; inverse?: boolean }) {
+  if (value === null) return <small className="analytics-change analytics-change--neutral">Müqayisə yoxdur</small>;
+  const good = inverse ? value <= 0 : value >= 0;
+  return <small className={`analytics-change ${good ? "analytics-change--up" : "analytics-change--down"}`}>{value >= 0 ? "↑" : "↓"} {Math.abs(value).toFixed(1)}% əvvəlki dövrə görə</small>;
+}
+
+function Kpi({ label, value, note, href, change, inverse }: { label: string; value: string; note: string; href?: string; change?: number | null; inverse?: boolean }) {
+  const content = <><span>{label}</span><strong>{value}</strong>{change !== undefined ? <Change value={change} inverse={inverse} /> : <small>{note}</small>}</>;
+  return href ? <Link href={href} className="analytics-kpi">{content}</Link> : <article className="analytics-kpi">{content}</article>;
+}
+
+function PerformanceTable({ rows, kind, query }: { rows: PerformanceRow[]; kind: "source" | "campaign" | "product"; query: Query }) {
+  if (!rows.length) return <div className="analytics-empty"><strong>Hələ məlumat yoxdur</strong><span>Strukturlaşdırılmış məlumat əlavə edildikdən sonra göstəricilər burada görünəcək.</span></div>;
+  return <div className="admin-table-wrap"><table className="admin-table analytics-performance-table"><thead><tr><th>{kind === "source" ? "Mənbə" : kind === "campaign" ? "Kampaniya" : "Məhsul"}</th><th>Xərc</th><th>Göstəriş</th><th>Klik</th><th>CTR</th><th>Lead</th><th>CPL</th><th>Uyğun</th><th>Müştəri</th><th>CAC</th><th>Gəlir</th><th>ROAS</th><th>ROI</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td><Link href={kind === "source" ? hrefWith(query, { source: row.id, view: "acquisition" }) : kind === "campaign" ? hrefWith(query, { campaign: row.id, view: "campaigns" }) : hrefWith(query, { product: row.id })}>{row.label}</Link></td><td>{money(row.spend)}</td><td>{number(row.impressions)}</td><td>{number(row.clicks)}</td><td>{percent(row.ctr)}</td><td>{number(row.leads)}</td><td>{money(row.cpl)}</td><td>{number(row.qualified)}</td><td>{number(row.customers)}</td><td>{money(row.cac)}</td><td>{money(row.revenue)}</td><td>{decimal(row.roas)}</td><td>{percent(row.roi)}</td></tr>)}</tbody></table></div>;
+}
+
+export default async function MarketingAnalyticsPage({ searchParams }: { searchParams: Promise<Query> }) {
+  const query = await searchParams;
+  const view = typeof query.view === "string" && views.some(([key]) => key === query.view) ? query.view : "overview";
+  const filters = parseAnalyticsFilters(query);
+  const supabase = await createClient();
+  const [snapshot, customersResult] = await Promise.all([
+    getAnalyticsSnapshot(supabase, filters),
+    supabase.from("sales_customers").select("*").order("created_at", { ascending: false }).limit(500),
+  ]);
+  const customers = (customersResult.data ?? []) as SalesCustomer[];
+  const { totals } = snapshot;
+  const maxTrend = Math.max(...snapshot.trend.flatMap((item) => [item.revenue, item.spend]), 1);
+
+  return <main className="admin-main admin-main--wide analytics-page">
+    <div className="admin-page-heading analytics-heading"><div><span className="admin-eyebrow">Revenue Intelligence</span><h1>Marketinq analitikası</h1><p>Mənbədən real ödənişə qədər tam müştəri yolu.</p></div><div className="admin-heading-actions"><a className="admin-button" href={`/api/admin/analytics/export?dataset=${view}&${new URLSearchParams(Object.entries(query).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString()}`}>CSV ixrac et</a></div></div>
+
+    <nav className="analytics-tabs" aria-label="Analitika bölmələri">{views.map(([key, label]) => <Link key={key} className={view === key ? "is-active" : ""} href={hrefWith(query, { view: key })}>{label}</Link>)}</nav>
+
+    <form className="analytics-filters" method="get">
+      <input type="hidden" name="view" value={view} />
+      <label><span>Başlanğıc</span><input type="date" name="from" defaultValue={filters.from} /></label>
+      <label><span>Son</span><input type="date" name="to" defaultValue={filters.to} /></label>
+      <label><span>Mənbə</span><select name="source" defaultValue={filters.sourceId ?? ""}><option value="">Hamısı</option>{snapshot.options.sources.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label><span>Kanal</span><select name="channel" defaultValue={filters.channel ?? ""}><option value="">Hamısı</option>{snapshot.options.channels.map((item) => <option key={item}>{item}</option>)}</select></label>
+      <label><span>Kampaniya</span><select name="campaign" defaultValue={filters.campaignId ?? ""}><option value="">Hamısı</option>{snapshot.options.campaigns.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label><span>Məhsul</span><select name="product" defaultValue={filters.productId ?? ""}><option value="">Hamısı</option>{snapshot.options.products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label><span>Satış meneceri</span><select name="sales" defaultValue={filters.salesId ?? ""}><option value="">Hamısı</option>{snapshot.options.team.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label><span>SDR</span><select name="sdr" defaultValue={filters.sdrId ?? ""}><option value="">Hamısı</option>{snapshot.options.team.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label><span>Ölkə</span><select name="country" defaultValue={filters.country ?? ""}><option value="">Hamısı</option>{snapshot.options.countries.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+      <label><span>Lead statusu</span><select name="leadStatus" defaultValue={filters.leadStatus ?? ""}><option value="">Hamısı</option><option value="new">Yeni</option><option value="contacted">Əlaqə saxlanılıb</option><option value="qualified">Uyğundur</option><option value="won">Qazanılıb</option><option value="closed">Bağlanıb</option></select></label>
+      <label><span>Müştəri statusu</span><select name="clientStatus" defaultValue={filters.clientStatus ?? ""}><option value="">Hamısı</option><option value="new">Yeni</option><option value="contacted">Əlaqə saxlanılıb</option><option value="interested">Maraqlanır</option><option value="proposal">Təklif</option><option value="won">Qazanılıb</option><option value="lost">İtirilib</option></select></label>
+      <label><span>Atribusiya</span><select name="attribution" defaultValue={filters.attribution}><option value="last_touch">Son təmas</option><option value="first_touch">İlk təmas</option></select></label>
+      <button className="admin-button admin-button--primary">Tətbiq et</button>
+      <Link href={`/admin/analytics?view=${view}`} className="admin-button">Təmizlə</Link>
+    </form>
+
+    {(view === "overview" || view === "acquisition") && <>
+      <section className="analytics-kpis">
+        <Kpi label="Reklam xərci" value={money(totals.spend)} note="Yalnız reklam spend-i" change={snapshot.comparison.spend} inverse />
+        <Kpi label="Müraciətlər" value={number(totals.leads)} note={`CPL: ${money(totals.cpl)}`} href={hrefWith(query, { view: "reports", dataset: "leads" })} change={snapshot.comparison.leads} />
+        <Kpi label="Ödənişli müştərilər" value={number(totals.customers)} note={`Paid CAC: ${money(totals.cac)}`} change={snapshot.comparison.customers} />
+        <Kpi label="Gəlir" value={money(totals.revenue)} note="Yalnız real ödənişlər" change={snapshot.comparison.revenue} />
+        <Kpi label="Blended CAC" value={money(totals.blendedCac)} note="Bütün marketinq xərci / müştəri" />
+        <Kpi label="ROAS" value={decimal(totals.roas)} note="Atribusiya edilmiş gəlir / reklam xərci" />
+      </section>
+      <section className="analytics-kpis analytics-kpis--secondary">
+        <Kpi label="Göstərişlər" value={number(totals.impressions)} note={`CTR: ${percent(totals.ctr)}`} />
+        <Kpi label="Kliklər" value={number(totals.clicks)} note={`CPC: ${money(totals.cpc)}`} />
+        <Kpi label="Uyğun lead" value={number(totals.qualified)} note={`CPQL: ${money(totals.cpql)}`} />
+        <Kpi label="Ümumi marketinq xərci" value={money(totals.totalMarketingCost)} note={`${money(totals.otherExpenses)} qeyri-reklam xərci`} />
+        <Kpi label="Ümumi mənfəət" value={money(totals.grossProfit)} note="Birbaşa xərc tam daxil edilməlidir" />
+        <Kpi label="Təkrarlanan gəlir" value={money(totals.recurringRevenue)} note={totals.mrr === null ? "Recurring model üçün məlumat yoxdur" : "Cari dövr üzrə MRR bazası"} />
+      </section>
+    </>}
+
+    {view === "overview" && <>
+      <section className="analytics-grid analytics-grid--trends">
+        <article className="admin-panel analytics-chart"><div className="admin-panel__header"><div><h2>Xərc və gəlir dinamikası</h2><p>Seçilmiş dövr üzrə gündəlik müqayisə</p></div></div>{snapshot.trend.length ? <div className="analytics-bars">{snapshot.trend.map((item) => <div key={item.date} title={`${item.date}: ${money(item.revenue)} gəlir / ${money(item.spend)} xərc`}><span style={{ height: `${Math.max(2, item.revenue / maxTrend * 100)}%` }} /><i style={{ height: `${Math.max(2, item.spend / maxTrend * 100)}%` }} /><small>{item.date.slice(5)}</small></div>)}</div> : <div className="analytics-empty">Dinamika üçün məlumat yoxdur.</div>}</article>
+        <article className="admin-panel"><div className="admin-panel__header"><div><h2>Tracking sağlamlığı</h2><p>Analitikanın etibarlılıq göstəriciləri</p></div><strong>{percent(snapshot.tracking.attributionCoverage)}</strong></div><div className="tracking-grid"><span>Mənbəsiz lead <b>{snapshot.tracking.leadsWithoutSource}</b></span><span>Kampaniyasız lead <b>{snapshot.tracking.leadsWithoutCampaign}</b></span><span>Atribusiyasız müştəri <b>{snapshot.tracking.customersWithoutAttribution}</b></span><span>Məhsulsuz satış <b>{snapshot.tracking.dealsWithoutProduct}</b></span><span>SDR təyin edilməyib <b>{snapshot.tracking.leadsWithoutSdr}</b></span><span>Satış meneceri yoxdur <b>{snapshot.tracking.leadsWithoutSales}</b></span></div></article>
+      </section>
+      <section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Mənbələrin performansı</h2><p>Xərcdən gəlirə qədər kanal nəticələri</p></div><Link href={hrefWith(query, { view: "sources" })}>Hamısına bax →</Link></div><PerformanceTable rows={snapshot.sourceRows.slice(0, 8)} kind="source" query={query} /></section>
+      <section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Məhsulların performansı</h2><p>Lead, satış və real gəlir üzrə</p></div></div><PerformanceTable rows={snapshot.productRows} kind="product" query={query} /></section>
+    </>}
+
+    {view === "funnel" && <section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Marketinq → satış hunisi</h2><p>Hər mərhələdə əvvəlki və ilk mərhələyə nisbət</p></div></div><div className="analytics-funnel">{snapshot.funnel.map((item, index) => <Link href={hrefWith(query, { view: "reports", stage: item.key })} key={item.key} style={{ width: `${100 - index * 6}%` }}><span>{item.label}</span><strong>{number(item.count)}</strong><small>{item.previousRate === null ? "Başlanğıc mərhələ" : `${percent(item.previousRate)} əvvəlki mərhələdən`} · {percent(item.firstRate)} ilk mərhələdən</small></Link>)}</div></section>}
+
+    {(view === "acquisition" || view === "sources") && <section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Mənbə analitikası</h2><p>{filters.attribution === "first_touch" ? "İlk təmas" : "Son təmas"} atribusiya modeli</p></div></div><PerformanceTable rows={snapshot.sourceRows} kind="source" query={query} /></section>}
+
+    {view === "sources" && <section className="analytics-entry-grid"><form action={createMarketingSource} className="admin-panel analytics-entry"><h2>Yeni mənbə</h2><label><span>Ad</span><input name="name" required /></label><label><span>Sistem açarı</span><input name="key" placeholder="meselen-youtube" required /></label><label><span>Kanal</span><input name="channel" placeholder="Organic social" required /></label><label className="analytics-check"><input type="checkbox" name="isPaid" /> Ödənişli mənbədir</label><button className="admin-button admin-button--primary">Mənbə əlavə et</button></form></section>}
+
+    {view === "campaigns" && <><section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Kampaniya performansı</h2><p>Ən yaxşı və zəif kampaniyaları ROAS, CAC və gəlir üzrə müqayisə edin</p></div></div><PerformanceTable rows={snapshot.campaignRows} kind="campaign" query={query} /></section><section className="analytics-entry-grid"><form action={createCampaign} className="admin-panel analytics-entry"><h2>Kampaniya yarat</h2><label><span>Ad</span><input name="name" required /></label><label><span>Platforma</span><input name="platform" placeholder="Meta Ads" required /></label><label><span>Mənbə</span><select name="sourceId" required><option value="">Seçin</option>{snapshot.options.sources.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label><span>Məqsəd</span><input name="objective" /></label><div className="analytics-inline"><label><span>Başlanğıc</span><input name="startsAt" type="date" /></label><label><span>Son</span><input name="endsAt" type="date" /></label></div><button className="admin-button admin-button--primary">Yarat</button></form><form action={upsertDailyMetric} className="admin-panel analytics-entry"><h2>Gündəlik reklam göstəricisi</h2><label><span>Tarix</span><input name="metricDate" type="date" required /></label><label><span>Mənbə</span><select name="sourceId" required><option value="">Seçin</option>{snapshot.options.sources.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label><span>Kampaniya</span><select name="campaignId"><option value="">Kampaniyasız</option>{snapshot.options.campaigns.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="analytics-inline"><label><span>Xərc</span><input name="spend" type="number" step="0.01" min="0" required /></label><label><span>AZN qarşılığı</span><input name="spendAzn" type="number" step="0.01" min="0" required /></label><label><span>Valyuta</span><select name="currency" defaultValue="AZN"><option>AZN</option><option>USD</option><option>EUR</option><option>GBP</option></select></label></div><div className="analytics-inline"><label><span>Göstəriş</span><input name="impressions" type="number" min="0" defaultValue="0" /></label><label><span>Reach</span><input name="reach" type="number" min="0" defaultValue="0" /></label><label><span>Klik</span><input name="clicks" type="number" min="0" defaultValue="0" /></label></div><button className="admin-button admin-button--primary">Göstəricini yadda saxla</button></form></section></>}
+
+    {view === "sales" && <section className="analytics-grid"><article className="admin-panel"><div className="admin-panel__header"><div><h2>Satış menecerləri</h2><p>Təyin edilən lead-dən real gəlirə qədər</p></div></div>{snapshot.salesRows.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Menecer</th><th>Lead</th><th>Uyğun</th><th>Satış</th><th>Müştəri</th><th>Konversiya</th><th>Gəlir</th></tr></thead><tbody>{snapshot.salesRows.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.assigned}</td><td>{item.qualified}</td><td>{item.deals}</td><td>{item.customers}</td><td>{percent(item.conversion)}</td><td>{money(item.revenue)}</td></tr>)}</tbody></table></div> : <div className="analytics-empty">Satış meneceri üzrə əlaqələndirilmiş məlumat yoxdur.</div>}</article><article className="admin-panel"><div className="admin-panel__header"><div><h2>SDR performansı</h2><p>Əlaqə, kvalifikasiya və satışa ötürmə</p></div></div>{snapshot.sdrRows.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>SDR</th><th>Lead</th><th>Əlaqə</th><th>Uyğun</th><th>Satışa ötürülüb</th><th>Faiz</th><th>Gəlir</th></tr></thead><tbody>{snapshot.sdrRows.map((item) => <tr key={item.id}><td>{item.label}</td><td>{item.assigned}</td><td>{item.contacted}</td><td>{item.qualified}</td><td>{item.passed}</td><td>{percent(item.qualificationRate)}</td><td>{money(item.revenue)}</td></tr>)}</tbody></table></div> : <div className="analytics-empty">SDR təyinatları hələ aparılmayıb.</div>}</article></section>}
+
+    {view === "expenses" && <><section className="analytics-kpis"><Kpi label="Reklam xərci" value={money(totals.spend)} note="Daily metrics cədvəlindən" /><Kpi label="Digər marketinq xərci" value={money(totals.otherExpenses)} note="Reklamdan ayrı saxlanılır" /><Kpi label="Ümumi marketinq xərci" value={money(totals.totalMarketingCost)} note="Blended CAC bazası" /></section><section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Xərc reyestri</h2><p>Agentlik, kontent, influencer, software və digər xərclər</p></div></div>{snapshot.expenses.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Tarix</th><th>Növ</th><th>Platforma</th><th>Məbləğ</th><th>AZN</th><th>Açıqlama</th></tr></thead><tbody>{snapshot.expenses.map((item) => <tr key={item.id}><td>{item.expense_date}</td><td>{item.expense_type}</td><td>{item.platform || "—"}</td><td>{item.amount} {item.currency}</td><td>{money(item.amount_azn)}</td><td>{item.description || "—"}</td></tr>)}</tbody></table></div> : <div className="analytics-empty">Marketinq xərci əlavə edilməyib.</div>}</section><form action={createMarketingExpense} className="admin-panel analytics-entry analytics-entry--wide"><h2>Marketinq xərci əlavə et</h2><div className="analytics-inline"><label><span>Tarix</span><input name="expenseDate" type="date" required /></label><label><span>Növ</span><select name="expenseType"><option value="influencer">Influencer</option><option value="content">Kontent</option><option value="creative">Kreativ istehsal</option><option value="agency">Agentlik</option><option value="software">Proqram təminatı</option><option value="advertising">Reklam</option><option value="other">Digər</option></select></label><label><span>Platforma</span><input name="platform" /></label></div><div className="analytics-inline"><label><span>Məbləğ</span><input name="amount" type="number" step="0.01" min="0.01" required /></label><label><span>AZN qarşılığı</span><input name="amountAzn" type="number" step="0.01" min="0.01" required /></label><label><span>Valyuta</span><select name="currency" defaultValue="AZN"><option>AZN</option><option>USD</option><option>EUR</option><option>GBP</option></select></label></div><div className="analytics-inline"><label><span>Mənbə</span><select name="sourceId"><option value="">Seçilməyib</option>{snapshot.options.sources.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label><span>Kampaniya</span><select name="campaignId"><option value="">Seçilməyib</option>{snapshot.options.campaigns.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div><label><span>Açıqlama</span><textarea name="description" rows={3} /></label><button className="admin-button admin-button--primary">Xərci əlavə et</button></form></>}
+
+    {view === "revenue" && <><section className="analytics-kpis"><Kpi label="Real gəlir" value={money(totals.revenue)} note="Paid statuslu ödənişlər" /><Kpi label="Ödənişli müştəri" value={number(totals.customers)} note={`Orta gəlir: ${money(totals.customers ? totals.revenue / totals.customers : null)}`} /><Kpi label="Təkrarlanan gəlir" value={money(totals.recurringRevenue)} note="Recurring ödənişlər" /><Kpi label="Ümumi mənfəət" value={money(totals.grossProfit)} note="Direct cost tam olduqda hesablanır" /></section><section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Ödəniş reyestri</h2><p>Gəlir yalnız bu real ödənişlərdən hesablanır</p></div></div>{snapshot.payments.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Tarix</th><th>Müştəri ID</th><th>Məbləğ</th><th>AZN</th><th>Növ</th><th>Birbaşa xərc</th></tr></thead><tbody>{snapshot.payments.map((item) => <tr key={item.id}><td>{(item.paid_at || item.created_at).slice(0, 10)}</td><td>{item.customer_id.slice(0, 8)}</td><td>{item.amount} {item.currency}</td><td>{money(item.amount_azn)}</td><td>{item.revenue_type === "recurring" ? "Təkrarlanan" : "Birdəfəlik"}</td><td>{money(item.direct_cost_azn)}</td></tr>)}</tbody></table></div> : <div className="analytics-empty">Real ödəniş daxil edilməyib; buna görə gəlir və ROAS hesablanmır.</div>}</section><form action={createPayment} className="admin-panel analytics-entry analytics-entry--wide"><h2>Ödəniş əlavə et</h2><div className="analytics-inline"><label><span>Müştəri</span><select name="customerId" required><option value="">Seçin</option>{customers.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.phone}</option>)}</select></label><label><span>Məhsul</span><select name="productId"><option value="">CRM-dən götür</option>{snapshot.options.products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label><span>Ödəniş vaxtı</span><input name="paidAt" type="datetime-local" required /></label></div><div className="analytics-inline"><label><span>Məbləğ</span><input name="amount" type="number" step="0.01" min="0.01" required /></label><label><span>AZN qarşılığı</span><input name="amountAzn" type="number" step="0.01" min="0.01" required /></label><label><span>Valyuta</span><select name="currency" defaultValue="AZN"><option>AZN</option><option>USD</option><option>EUR</option><option>GBP</option></select></label><label><span>Birbaşa xərc (AZN)</span><input name="directCostAzn" type="number" step="0.01" min="0" /></label><label><span>Gəlir növü</span><select name="revenueType"><option value="one_time">Birdəfəlik</option><option value="recurring">Təkrarlanan</option></select></label></div><label><span>Açıqlama</span><textarea name="description" rows={3} /></label><button className="admin-button admin-button--primary">Ödənişi qeydə al</button></form></>}
+
+    {view === "reports" && <section className="admin-panel analytics-section"><div className="admin-panel__header"><div><h2>Drill-down və hesabatlar</h2><p>Seçilmiş filtrə uyğun konkret müraciətlər</p></div><a href={`/api/admin/analytics/export?dataset=leads&${new URLSearchParams(Object.entries(query).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString()}`}>Lead CSV yüklə</a></div>{snapshot.leads.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Lead</th><th>Telefon</th><th>Xidmət</th><th>Status</th><th>Tarix</th></tr></thead><tbody>{snapshot.leads.map((lead) => <tr key={lead.id}><td><Link href={`/admin/leads/${lead.id}`}>{lead.name}</Link></td><td>{lead.phone}</td><td>{lead.service_name || lead.service_key || "—"}</td><td>{lead.status}</td><td>{lead.submitted_at.slice(0, 10)}</td></tr>)}</tbody></table></div> : <div className="analytics-empty">Bu filtrə uyğun müraciət yoxdur.</div>}</section>}
+  </main>;
+}
