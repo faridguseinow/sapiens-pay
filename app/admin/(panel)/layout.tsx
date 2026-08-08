@@ -65,6 +65,10 @@ export default async function AdminPanelLayout({
             <span>◈</span>
             Satış CRM
           </Link>
+          <Link href="/admin/analytics">
+            <span>⌁</span>
+            Marketinq analitikası
+          </Link>
           <Link href="/admin/team">
             <span>♙</span>
             Komanda

@@ -27,7 +27,21 @@ type LeadPayload = {
   };
   qa: Array<{ question: string; answer: string }>;
   submittedAt: string;
+  tracking?: {
+    first?: { source?: string; medium?: string; campaign?: string };
+    last?: { source?: string; medium?: string; campaign?: string; content?: string; term?: string };
+    landingPage?: string;
+    referrer?: string;
+  } | null;
 };
+
+function sourceKey(value: string | undefined) {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (["facebook", "fb", "meta", "instagram", "ig"].includes(normalized)) return "meta-ads";
+  if (["google", "googleads", "google-ads"].includes(normalized)) return "google-ads";
+  if (["telegram", "referral", "partner", "whatsapp", "direct", "website"].includes(normalized)) return normalized;
+  return normalized.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+}
 
 function validatePayload(data: unknown): data is LeadPayload {
   if (!data || typeof data !== "object") return false;
@@ -104,6 +118,15 @@ export async function POST(request: Request) {
     }
 
     const supabase = createPublicClient();
+    const firstSourceKey = sourceKey(body.tracking?.first?.source);
+    const lastSourceKey = sourceKey(body.tracking?.last?.source) || firstSourceKey;
+    const sourceKeys = [...new Set([firstSourceKey, lastSourceKey].filter(Boolean))];
+    const { data: matchedSources } = sourceKeys.length
+      ? await supabase.from("marketing_sources").select("id,key").in("key", sourceKeys)
+      : { data: [] };
+    const sourceIds = new Map((matchedSources ?? []).map((item) => [item.key, item.id]));
+    const firstSourceId = sourceIds.get(firstSourceKey) ?? null;
+    const lastSourceId = sourceIds.get(lastSourceKey) ?? null;
     const { error } = await supabase.from("leads").insert({
       status: "new",
       name: body.contact.name,
@@ -112,6 +135,23 @@ export async function POST(request: Request) {
       estimated_loss: body.estimatedLoss,
       locale: body.locale,
       submitted_at: new Date().toISOString(),
+      service_key: body.serviceKey,
+      service_name: body.serviceName,
+      package_name: body.packageName,
+      source_path: body.sourcePath,
+      source_label: body.sourceLabel,
+      source_id: lastSourceId || firstSourceId,
+      first_touch_source_id: firstSourceId,
+      first_touch_medium: body.tracking?.first?.medium?.slice(0, 160) || null,
+      first_touch_campaign: body.tracking?.first?.campaign?.slice(0, 200) || null,
+      last_touch_source_id: lastSourceId,
+      last_touch_medium: body.tracking?.last?.medium?.slice(0, 160) || null,
+      last_touch_campaign: body.tracking?.last?.campaign?.slice(0, 200) || null,
+      lead_medium: body.tracking?.last?.medium?.slice(0, 160) || null,
+      lead_content: body.tracking?.last?.content?.slice(0, 200) || null,
+      lead_term: body.tracking?.last?.term?.slice(0, 200) || null,
+      landing_page: body.tracking?.landingPage?.slice(0, 1000) || body.sourcePath,
+      referrer: body.tracking?.referrer?.slice(0, 1000) || null,
       profile: body.profile,
       answers: body.qa,
     });
