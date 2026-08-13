@@ -20,6 +20,7 @@ export async function updateSalesCustomerAsAdmin(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim();
   const nextContactAt = String(formData.get("nextContactAt") ?? "").trim();
   const potentialValue = Number(formData.get("potentialValue") ?? 0);
+  const sourceId = String(formData.get("sourceId") ?? "").trim();
 
   if (!id || !name || !phone) throw new Error("Müştərinin adı və telefonu mütləqdir.");
   if (name.length > 180 || phone.length > 50 || email.length > 254 || notes.length > 5000) {
@@ -40,6 +41,12 @@ export async function updateSalesCustomerAsAdmin(formData: FormData) {
     .eq("is_active", true)
     .maybeSingle();
   if (representativeError || !representative) throw new Error("Aktiv satış təmsilçisi seçilməyib.");
+  if (sourceId) {
+    const { data: source } = await supabase.from("marketing_sources").select("id").eq("id", sourceId).eq("is_active", true).maybeSingle();
+    if (!source) throw new Error("Mənbə yanlışdır və ya deaktivdir.");
+  }
+
+  const { data: current } = await supabase.from("sales_customers").select("won_at").eq("id", id).maybeSingle();
 
   const { data, error } = await supabase
     .from("sales_customers")
@@ -53,7 +60,8 @@ export async function updateSalesCustomerAsAdmin(formData: FormData) {
       notes: notes || null,
       next_contact_at: nextContactDate?.toISOString() ?? null,
       potential_value: potentialValue,
-      won_at: status === "won" ? new Date().toISOString() : null,
+      source_id: sourceId || null,
+      won_at: status === "won" ? current?.won_at ?? new Date().toISOString() : null,
     })
     .eq("id", id)
     .select("id")
