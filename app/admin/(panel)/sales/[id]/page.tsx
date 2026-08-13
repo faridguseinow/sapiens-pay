@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth/access";
 import { SAPIENS_SERVICES } from "@/lib/services";
-import type { SalesCustomer, SalesCustomerStatus, TeamMember } from "@/lib/database.types";
+import type { MarketingSource, SalesCustomer, SalesCustomerStatus, TeamMember } from "@/lib/database.types";
 import { TaskSubmitButton } from "../../tasks/task-submit-button";
 import { updateSalesCustomerAsAdmin } from "../actions";
+import { bakuDateTimeLocal } from "@/lib/sales";
 
 const statuses: { value: SalesCustomerStatus; label: string }[] = [
   { value: "new", label: "Yeni" },
@@ -15,16 +16,6 @@ const statuses: { value: SalesCustomerStatus; label: string }[] = [
   { value: "lost", label: "Bağlandı" },
 ];
 
-function localDateTime(value: string | null) {
-  if (!value) return "";
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Baku", year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).formatToParts(new Date(value));
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
-}
-
 export default async function AdminSalesCustomerPage({
   params,
   searchParams,
@@ -34,15 +25,18 @@ export default async function AdminSalesCustomerPage({
 }) {
   const [{ id }, { saved }] = await Promise.all([params, searchParams]);
   const { supabase } = await requireRole("admin", "/admin/login");
-  const [customerResult, representativesResult] = await Promise.all([
+  const [customerResult, representativesResult, sourceResult] = await Promise.all([
     supabase.from("sales_customers").select("*").eq("id", id).maybeSingle(),
     supabase.from("team_members").select("*").eq("role", "sales").eq("is_active", true).order("name"),
+    supabase.from("marketing_sources").select("*").eq("is_active", true).order("name"),
   ]);
   if (customerResult.error) throw new Error("Müştəri məlumatları yüklənmədi.");
   if (!customerResult.data) notFound();
   if (representativesResult.error) throw new Error("Satış təmsilçiləri yüklənmədi.");
+  if (sourceResult.error) throw new Error("Mənbələr yüklənmədi.");
   const customer = customerResult.data as SalesCustomer;
   const representatives = (representativesResult.data ?? []) as TeamMember[];
+  const sources = (sourceResult.data ?? []) as MarketingSource[];
 
   return (
     <main className="admin-main">
@@ -61,8 +55,9 @@ export default async function AdminSalesCustomerPage({
           <label><span>Satış təmsilçisi *</span><select name="representativeId" required defaultValue={customer.representative_id}>{representatives.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
           <label><span>Xidmət</span><select name="serviceKey" defaultValue={customer.service_key}>{SAPIENS_SERVICES.map((service) => <option key={service.key} value={service.key}>{service.label}</option>)}</select></label>
           <label><span>Mərhələ</span><select name="status" defaultValue={customer.status}>{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
+          <label><span>Mənbə</span><select name="sourceId" defaultValue={customer.source_id ?? ""}><option value="">Mənbə seçilməyib</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
           <label><span>Potensial, AZN</span><input name="potentialValue" type="number" min="0" step="0.01" defaultValue={customer.potential_value} /></label>
-          <label><span>Növbəti əlaqə</span><input name="nextContactAt" type="datetime-local" defaultValue={localDateTime(customer.next_contact_at)} /></label>
+          <label><span>Növbəti əlaqə</span><input name="nextContactAt" type="datetime-local" defaultValue={bakuDateTimeLocal(customer.next_contact_at)} /></label>
           <label className="sales-customer-form__wide"><span>Qeyd</span><textarea name="notes" rows={6} maxLength={5000} defaultValue={customer.notes ?? ""} /></label>
           <TaskSubmitButton className="admin-button admin-button--primary" pendingLabel="Yadda saxlanılır...">Yadda saxla</TaskSubmitButton>
         </form>
