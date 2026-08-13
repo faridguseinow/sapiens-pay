@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { connection } from "next/server";
 import type { AdminTask, TaskStatus, TaskUpdate, TeamMember } from "@/lib/database.types";
 import { createTask, markTaskSeen, updateTask } from "./actions";
+import { DeleteTaskForm } from "./delete-task-form";
+import { TaskSubmitButton } from "./task-submit-button";
 
 const columns: { status: TaskStatus; title: string; hint: string }[] = [
   { status: "todo", title: "Gözləyir", hint: "Hələ başlanmayıb" },
@@ -40,10 +42,11 @@ export default async function TasksPage({
     supabase.auth.getClaims(),
   ]);
   const userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : "";
-  const [tasksResult, membersResult, updatesResult] = await Promise.all([
+  const [tasksResult, membersResult] = await Promise.all([
     supabase
       .from("admin_tasks")
       .select("*, assignee:team_members(*)")
+      .is("archived_at", null)
       .order("deadline", { ascending: true }),
     supabase
       .from("team_members")
@@ -51,13 +54,25 @@ export default async function TasksPage({
       .eq("is_active", true)
       .not("auth_user_id", "is", null)
       .order("name"),
-    supabase.from("task_updates").select("*").order("created_at", { ascending: false }),
   ]);
 
   const setupMissing = tasksResult.error?.code === "42P01";
+  if (tasksResult.error && !setupMissing) throw new Error("Tapşırıqlar yüklənmədi.");
+  if (membersResult.error) throw new Error("Əməkdaş siyahısı yüklənmədi.");
   const allTasks = (tasksResult.data ?? []) as AdminTask[];
   const members = (membersResult.data ?? []) as TeamMember[];
+  const taskIds = allTasks.map((task) => task.id);
+  const updatesResult = taskIds.length
+    ? await supabase.from("task_updates").select("*").in("task_id", taskIds).order("created_at", { ascending: false })
+    : { data: [], error: null };
+  if (updatesResult.error) throw new Error("Tapşırıq tarixçəsi yüklənmədi.");
   const updates = (updatesResult.data ?? []) as TaskUpdate[];
+  const updatesByTask = new Map<string, TaskUpdate[]>();
+  for (const update of updates) {
+    const list = updatesByTask.get(update.task_id) ?? [];
+    list.push(update);
+    updatesByTask.set(update.task_id, list);
+  }
   const mineOnly = view === "mine";
   const tasks = mineOnly
     ? allTasks.filter((task) => task.assignee?.auth_user_id === userId)
@@ -136,7 +151,7 @@ export default async function TasksPage({
                     </select>
                   </label>
                 </div>
-                <button className="admin-button admin-button--primary">Tapşırıq yarat</button>
+                <TaskSubmitButton className="admin-button admin-button--primary" pendingLabel="Yaradılır...">Tapşırıq yarat</TaskSubmitButton>
               </div>
             </form>
           </section> : null}
@@ -152,7 +167,7 @@ export default async function TasksPage({
                   </header>
                   <div className="admin-task-column__list">
                     {columnTasks.length ? columnTasks.map((task) => {
-                      const taskUpdates = updates.filter((update) => update.task_id === task.id);
+                      const taskUpdates = updatesByTask.get(task.id) ?? [];
                       const overdue = task.status !== "done" && new Date(task.deadline).getTime() < now;
                       const isAssignee = task.assignee?.auth_user_id === userId;
                       return (
@@ -161,9 +176,12 @@ export default async function TasksPage({
                             <span className={`admin-task-priority admin-task-priority--${task.priority}`}>
                               {priorityLabel[task.priority]}
                             </span>
-                            <span className={overdue ? "admin-task-deadline is-overdue" : "admin-task-deadline"}>
-                              {overdue ? "Gecikib · " : ""}{formatDate(task.deadline)}
-                            </span>
+                            <div className="admin-task-card__actions">
+                              <span className={overdue ? "admin-task-deadline is-overdue" : "admin-task-deadline"}>
+                                {overdue ? "Gecikib · " : ""}{formatDate(task.deadline)}
+                              </span>
+                              <DeleteTaskForm id={task.id} title={task.title} />
+                            </div>
                           </div>
                           <h3>{task.title}</h3>
                           {task.description ? <p>{task.description}</p> : null}
@@ -175,7 +193,7 @@ export default async function TasksPage({
                           {!task.seen_at && isAssignee ? (
                             <form action={markTaskSeen}>
                               <input type="hidden" name="id" value={task.id} />
-                              <button className="admin-task-seen">✓ Gördüm</button>
+                              <TaskSubmitButton className="admin-task-seen" pendingLabel="Yadda saxlanılır...">✓ Gördüm</TaskSubmitButton>
                             </form>
                           ) : null}
 
@@ -204,7 +222,7 @@ export default async function TasksPage({
                               <select name="status" defaultValue={task.status}>
                                 {columns.map((item) => <option value={item.status} key={item.status}>{item.title}</option>)}
                               </select>
-                              <button className="admin-button admin-button--primary">Yenilə</button>
+                              <TaskSubmitButton className="admin-button admin-button--primary" pendingLabel="Yenilənir...">Yenilə</TaskSubmitButton>
                             </div>
                           </form> : <div className="admin-task-owner-note">Statusu məsul əməkdaş yeniləyir.</div>}
                         </article>

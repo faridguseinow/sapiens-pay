@@ -369,6 +369,7 @@ a.analytics-kpi:hover { border-color: #b7c22b; box-shadow: 0 8px 24px rgba(28, 3
   pointer-events: none;
 }
 .compose-editor a { color: #497cbd; text-decoration: underline; }
+.compose-editor :not(a) { color: inherit !important; }
 .compose-editor ul,
 .compose-editor ol { padding-left: 1.5rem; }
 .compose-formatbar select {
@@ -1776,6 +1777,65 @@ body {
     font-size: 0.68rem;
     line-height: 1.55;
   }
+}
+
+.admin-task-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.admin-task-delete__button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #fff0ed;
+  color: #a43224;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.65rem;
+  transition: background 160ms ease, color 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background: #a43224;
+    color: #fff;
+  }
+}
+
+.admin-task-delete__button:disabled,
+.admin-task-seen:disabled,
+.admin-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-success-notice {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #cbdc70;
+  border-radius: 0.75rem;
+  color: #4e5908;
+  background: #f5f9d7;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-table-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 0.7rem;
+  border-radius: 0.6rem;
+  color: #5f680a;
+  background: #f2f5d4;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .admin-task-priority {

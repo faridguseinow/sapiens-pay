@@ -144,6 +144,8 @@ export type AdminTask = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  archived_at: string | null;
+  archived_by: string | null;
   assignee?: TeamMember | null;
 };
 

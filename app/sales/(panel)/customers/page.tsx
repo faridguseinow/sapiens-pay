@@ -37,7 +37,7 @@ export default async function SalesCustomersPage() {
           <label><span>Telefon *</span><input name="phone" required placeholder="+994 50 000 00 00" /></label>
           <label><span>E-poçt</span><input name="email" type="email" placeholder="client@example.com" /></label>
           <label><span>Xidmət *</span><select name="serviceKey" required defaultValue=""><option value="" disabled>Xidmət seçin</option>{SAPIENS_SERVICES.map((service) => <option key={service.key} value={service.key}>{service.label}</option>)}</select></label>
-          <label><span>Potensial məbləğ, USD</span><input name="potentialValue" type="number" min="0" step="1" defaultValue="0" /></label>
+          <label><span>Mərhələ *</span><select name="status" required defaultValue="new">{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
           <label><span>Növbəti əlaqə</span><input name="nextContactAt" type="datetime-local" /></label>
           <label className="sales-customer-form__wide"><span>Qeyd</span><textarea name="notes" rows={3} placeholder="Danışıq, ehtiyac və növbəti addım..." /></label>
           <button className="admin-button admin-button--primary">+ Müştəri əlavə et</button>

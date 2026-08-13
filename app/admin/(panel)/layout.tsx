@@ -35,6 +35,7 @@ export default async function AdminPanelLayout({
         .from("admin_tasks")
         .select("id", { count: "exact", head: true })
         .eq("assignee_id", currentMember.id)
+        .is("archived_at", null)
         .neq("status", "done")
         .is("seen_at", null)
     : { count: 0 };

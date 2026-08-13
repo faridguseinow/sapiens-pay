@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/auth/access";
 import { serviceLabel } from "@/lib/services";
 import type { SalesCustomer, TeamMember } from "@/lib/database.types";
@@ -14,6 +15,8 @@ export default async function AdminSalesPage() {
     supabase.from("team_members").select("*").eq("role", "sales").order("name"),
   ]);
   const customers = (customerResult.data ?? []) as SalesCustomer[];
+  if (customerResult.error) throw new Error("Satış müştəriləri yüklənmədi.");
+  if (repsResult.error) throw new Error("Satış təmsilçiləri yüklənmədi.");
   const reps = (repsResult.data ?? []) as TeamMember[];
   const active = customers.filter((customer) => !["won", "lost"].includes(customer.status));
   const won = customers.filter((customer) => customer.status === "won");
@@ -43,14 +46,15 @@ export default async function AdminSalesPage() {
       <section className="admin-panel" style={{ marginTop: 20 }}>
         <div className="admin-panel__header"><div><h2>Bütün satış müştəriləri</h2><p>Təmsilçilərin daxil etdiyi məlumatlar</p></div></div>
         {customers.length ? <div className="admin-table-wrap"><table className="admin-table">
-          <thead><tr><th>Müştəri</th><th>Təmsilçi</th><th>Xidmət</th><th>Status</th><th>Potensial</th><th>Növbəti əlaqə</th></tr></thead>
+          <thead><tr><th>Müştəri</th><th>Təmsilçi</th><th>Xidmət</th><th>Status</th><th>Potensial</th><th>Növbəti əlaqə</th><th /></tr></thead>
           <tbody>{customers.map((customer) => <tr key={customer.id}>
             <td><div className="admin-person"><b>{customer.name.slice(0, 1).toUpperCase()}</b><span><strong>{customer.name}</strong><small>{customer.phone}</small>{customer.email ? <small>{customer.email}</small> : null}</span></div></td>
             <td>{customer.representative?.name ?? "—"}</td>
             <td>{serviceLabel(customer.service_key)}</td>
             <td><span className={`sales-status sales-status--${customer.status}`}>{statusLabel[customer.status]}</span></td>
             <td>${Number(customer.potential_value).toLocaleString("en-US")}</td>
-            <td>{customer.next_contact_at ? new Date(customer.next_contact_at).toLocaleString("az-AZ") : "—"}</td>
+            <td>{customer.next_contact_at ? new Date(customer.next_contact_at).toLocaleString("az-AZ", { timeZone: "Asia/Baku" }) : "—"}</td>
+            <td><Link href={`/admin/sales/${customer.id}`} className="admin-table-action">Aç →</Link></td>
           </tr>)}</tbody>
         </table></div> : <div className="admin-empty">Satış müştərisi əlavə edilməyib.</div>}
       </section>

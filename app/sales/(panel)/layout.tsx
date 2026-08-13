@@ -9,6 +9,7 @@ export default async function SalesPanelLayout({ children }: { children: React.R
       .from("admin_tasks")
       .select("id", { count: "exact", head: true })
       .eq("assignee_id", member.id)
+      .is("archived_at", null)
       .neq("status", "done")
       .is("seen_at", null),
     supabase
