@@ -5,7 +5,7 @@ import { SAPIENS_SERVICES } from "@/lib/services";
 import type { MarketingSource, SalesCustomer, SalesCustomerStatus, TeamMember } from "@/lib/database.types";
 import { TaskSubmitButton } from "../../tasks/task-submit-button";
 import { updateSalesCustomerAsAdmin } from "../actions";
-import { bakuDateTimeLocal } from "@/lib/sales";
+import { SALES_SOURCE_KEYS, bakuDateTimeLocal, salesSourceLabel } from "@/lib/sales";
 
 const statuses: { value: SalesCustomerStatus; label: string }[] = [
   { value: "new", label: "Yeni" },
@@ -28,7 +28,7 @@ export default async function AdminSalesCustomerPage({
   const [customerResult, representativesResult, sourceResult] = await Promise.all([
     supabase.from("sales_customers").select("*").eq("id", id).maybeSingle(),
     supabase.from("team_members").select("*").eq("role", "sales").eq("is_active", true).order("name"),
-    supabase.from("marketing_sources").select("*").eq("is_active", true).order("name"),
+    supabase.from("marketing_sources").select("*").eq("is_active", true).in("key", [...SALES_SOURCE_KEYS]),
   ]);
   if (customerResult.error) throw new Error("Müştəri məlumatları yüklənmədi.");
   if (!customerResult.data) notFound();
@@ -36,7 +36,7 @@ export default async function AdminSalesCustomerPage({
   if (sourceResult.error) throw new Error("Mənbələr yüklənmədi.");
   const customer = customerResult.data as SalesCustomer;
   const representatives = (representativesResult.data ?? []) as TeamMember[];
-  const sources = (sourceResult.data ?? []) as MarketingSource[];
+  const sources = ((sourceResult.data ?? []) as MarketingSource[]).sort((a, b) => SALES_SOURCE_KEYS.indexOf(a.key as (typeof SALES_SOURCE_KEYS)[number]) - SALES_SOURCE_KEYS.indexOf(b.key as (typeof SALES_SOURCE_KEYS)[number]));
 
   return (
     <main className="admin-main">
@@ -55,7 +55,8 @@ export default async function AdminSalesCustomerPage({
           <label><span>Satış təmsilçisi *</span><select name="representativeId" required defaultValue={customer.representative_id}>{representatives.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
           <label><span>Xidmət</span><select name="serviceKey" defaultValue={customer.service_key}>{SAPIENS_SERVICES.map((service) => <option key={service.key} value={service.key}>{service.label}</option>)}</select></label>
           <label><span>Mərhələ</span><select name="status" defaultValue={customer.status}>{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
-          <label><span>Mənbə</span><select name="sourceId" defaultValue={customer.source_id ?? ""}><option value="">Mənbə seçilməyib</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
+          <label><span>Mənbə</span><select name="sourceId" defaultValue={customer.source_id ?? ""}><option value="">Mənbə seçilməyib</option>{sources.map((source) => <option key={source.id} value={source.id}>{salesSourceLabel(source.key, source.name)}</option>)}</select></label>
+          <label><span>Digər mənbə</span><input name="sourceDetail" maxLength={180} defaultValue={customer.source_detail ?? ""} placeholder="Digər seçmisinizsə, mənbəni yazın" /></label>
           <label><span>Potensial, AZN</span><input name="potentialValue" type="number" min="0" step="0.01" defaultValue={customer.potential_value} /></label>
           <label><span>Növbəti əlaqə</span><input name="nextContactAt" type="datetime-local" defaultValue={bakuDateTimeLocal(customer.next_contact_at)} /></label>
           <label className="sales-customer-form__wide"><span>Qeyd</span><textarea name="notes" rows={6} maxLength={5000} defaultValue={customer.notes ?? ""} /></label>

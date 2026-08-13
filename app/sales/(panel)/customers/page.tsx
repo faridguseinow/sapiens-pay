@@ -2,21 +2,21 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth/access";
 import { SAPIENS_SERVICES, serviceLabel } from "@/lib/services";
 import type { MarketingSource, SalesCustomer } from "@/lib/database.types";
-import { SALES_STATUSES } from "@/lib/sales";
+import { SALES_SOURCE_KEYS, SALES_STATUSES, salesSourceLabel } from "@/lib/sales";
 import { TaskSubmitButton } from "@/app/admin/(panel)/tasks/task-submit-button";
 import { createSalesCustomer } from "./actions";
 
-type CustomerWithSource = SalesCustomer & { source: Pick<MarketingSource, "name"> | null };
+type CustomerWithSource = SalesCustomer & { source: Pick<MarketingSource, "key" | "name"> | null };
 
 export default async function SalesCustomersPage() {
   const { supabase, member } = await requireRole("sales", "/sales/login");
   const [customerResult, sourceResult] = await Promise.all([
-    supabase.from("sales_customers").select("*, source:marketing_sources(name)").eq("representative_id", member.id).order("created_at", { ascending: false }),
-    supabase.from("marketing_sources").select("*").eq("is_active", true).order("name"),
+    supabase.from("sales_customers").select("*, source:marketing_sources(key,name)").eq("representative_id", member.id).order("created_at", { ascending: false }),
+    supabase.from("marketing_sources").select("*").eq("is_active", true).in("key", [...SALES_SOURCE_KEYS]),
   ]);
   if (customerResult.error || sourceResult.error) throw new Error("Satış məlumatları yüklənmədi.");
   const customers = (customerResult.data ?? []) as CustomerWithSource[];
-  const sources = (sourceResult.data ?? []) as MarketingSource[];
+  const sources = ((sourceResult.data ?? []) as MarketingSource[]).sort((a, b) => SALES_SOURCE_KEYS.indexOf(a.key as (typeof SALES_SOURCE_KEYS)[number]) - SALES_SOURCE_KEYS.indexOf(b.key as (typeof SALES_SOURCE_KEYS)[number]));
 
   return (
     <main className="admin-main">
@@ -33,7 +33,8 @@ export default async function SalesCustomersPage() {
           <label><span>E-poçt</span><input name="email" type="email" maxLength={254} placeholder="client@example.com" /></label>
           <label><span>Xidmət *</span><select name="serviceKey" required defaultValue=""><option value="" disabled>Xidmət seçin</option>{SAPIENS_SERVICES.map((service) => <option key={service.key} value={service.key}>{service.label}</option>)}</select></label>
           <label><span>Mərhələ *</span><select name="status" required defaultValue="new">{SALES_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
-          <label><span>Mənbə *</span><select name="sourceId" required defaultValue=""><option value="" disabled>Mənbə seçin</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</select></label>
+          <label><span>Mənbə *</span><select name="sourceId" required defaultValue=""><option value="" disabled>Mənbə seçin</option>{sources.map((source) => <option key={source.id} value={source.id}>{salesSourceLabel(source.key, source.name)}</option>)}</select></label>
+          <label><span>Digər mənbə</span><input name="sourceDetail" maxLength={180} placeholder="Digər seçmisinizsə, mənbəni yazın" /></label>
           <label><span>Növbəti əlaqə</span><input name="nextContactAt" type="datetime-local" /></label>
           <label className="sales-customer-form__wide"><span>Qeyd</span><textarea name="notes" rows={3} maxLength={5000} placeholder="Danışıq, ehtiyac və növbəti addım..." /></label>
           <TaskSubmitButton className="admin-button admin-button--primary" pendingLabel="Əlavə edilir...">+ Müştəri əlavə et</TaskSubmitButton>
@@ -47,7 +48,7 @@ export default async function SalesCustomersPage() {
           <tbody>{customers.map((customer) => <tr key={customer.id}>
             <td><div className="admin-person"><b>{customer.name.slice(0, 1).toUpperCase()}</b><span><strong>{customer.name}</strong><small>{customer.phone}</small>{customer.email ? <small>{customer.email}</small> : null}</span></div></td>
             <td>{serviceLabel(customer.service_key)}</td>
-            <td>{customer.source?.name ?? "—"}</td>
+            <td>{customer.source ? (customer.source.key === "other" ? customer.source_detail || "Digər" : salesSourceLabel(customer.source.key, customer.source.name)) : "—"}</td>
             <td><span className={`sales-status sales-status--${customer.status}`}>{SALES_STATUSES.find((item) => item.value === customer.status)?.label}</span></td>
             <td>{Number(customer.potential_value).toLocaleString("az-AZ")} AZN</td>
             <td>{customer.next_contact_at ? new Date(customer.next_contact_at).toLocaleString("az-AZ") : "—"}</td>

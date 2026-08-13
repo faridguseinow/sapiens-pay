@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/access";
 import { SAPIENS_SERVICES } from "@/lib/services";
 import type { SalesCustomerStatus } from "@/lib/database.types";
+import { SALES_SOURCE_KEYS } from "@/lib/sales";
 
 const statuses: SalesCustomerStatus[] = ["new", "contacted", "interested", "proposal", "won", "lost"];
 
@@ -21,9 +22,10 @@ export async function updateSalesCustomerAsAdmin(formData: FormData) {
   const nextContactAt = String(formData.get("nextContactAt") ?? "").trim();
   const potentialValue = Number(formData.get("potentialValue") ?? 0);
   const sourceId = String(formData.get("sourceId") ?? "").trim();
+  let sourceDetail = String(formData.get("sourceDetail") ?? "").trim();
 
   if (!id || !name || !phone) throw new Error("Müştərinin adı və telefonu mütləqdir.");
-  if (name.length > 180 || phone.length > 50 || email.length > 254 || notes.length > 5000) {
+  if (name.length > 180 || phone.length > 50 || email.length > 254 || notes.length > 5000 || sourceDetail.length > 180) {
     throw new Error("Daxil edilən məlumatlardan biri icazə verilən uzunluğu keçir.");
   }
   if (!SAPIENS_SERVICES.some((service) => service.key === serviceKey)) throw new Error("Xidmət yanlışdır.");
@@ -42,8 +44,10 @@ export async function updateSalesCustomerAsAdmin(formData: FormData) {
     .maybeSingle();
   if (representativeError || !representative) throw new Error("Aktiv satış təmsilçisi seçilməyib.");
   if (sourceId) {
-    const { data: source } = await supabase.from("marketing_sources").select("id").eq("id", sourceId).eq("is_active", true).maybeSingle();
-    if (!source) throw new Error("Mənbə yanlışdır və ya deaktivdir.");
+    const { data: source } = await supabase.from("marketing_sources").select("id,key").eq("id", sourceId).eq("is_active", true).maybeSingle();
+    if (!source || !SALES_SOURCE_KEYS.includes(source.key as (typeof SALES_SOURCE_KEYS)[number])) throw new Error("Mənbə yanlışdır və ya deaktivdir.");
+    if (source.key === "other" && !sourceDetail) throw new Error("Digər mənbənin adını yazın.");
+    if (source.key !== "other") sourceDetail = "";
   }
 
   const { data: current } = await supabase.from("sales_customers").select("won_at").eq("id", id).maybeSingle();
@@ -61,6 +65,7 @@ export async function updateSalesCustomerAsAdmin(formData: FormData) {
       next_contact_at: nextContactDate?.toISOString() ?? null,
       potential_value: potentialValue,
       source_id: sourceId || null,
+      source_detail: sourceDetail || null,
       won_at: status === "won" ? current?.won_at ?? new Date().toISOString() : null,
     })
     .eq("id", id)
