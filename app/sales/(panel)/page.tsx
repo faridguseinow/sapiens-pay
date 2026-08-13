@@ -15,9 +15,10 @@ export default async function SalesDashboardPage() {
   ]);
   const customers = (customerResult.data ?? []) as SalesCustomer[];
   const tasks = (taskResult.data ?? []) as AdminTask[];
+  if (customerResult.error) throw new Error("Müştəri məlumatları yüklənmədi.");
+  if (taskResult.error) throw new Error("Tapşırıqlar yüklənmədi.");
   const won = customers.filter((customer) => customer.status === "won");
   const active = customers.filter((customer) => !["won", "lost"].includes(customer.status));
-  const pipeline = active.reduce((sum, customer) => sum + Number(customer.potential_value || 0), 0);
 
   return (
     <main className="admin-main">
@@ -29,7 +30,7 @@ export default async function SalesDashboardPage() {
         <article className="admin-stat--accent"><span>Müştərilərim</span><strong>{customers.length}</strong><small>Ümumi qeyd</small></article>
         <article><span>Aktiv danışıqlar</span><strong>{active.length}</strong><small>Satış prosesində</small></article>
         <article><span>Qazanılan</span><strong>{won.length}</strong><small>Müştəriyə çevrilib</small></article>
-        <article><span>Satış potensialı</span><strong>{pipeline.toLocaleString("az-AZ")} AZN</strong><small>Açıq imkanların cəmi</small></article>
+        <article><span>Aylıq komissiya</span><strong>— AZN</strong><small>Bonus tarifləri əlavə ediləcək</small></article>
       </section>
       <div className="sales-dashboard-grid">
         <section className="admin-panel">
