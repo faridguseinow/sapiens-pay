@@ -9,6 +9,23 @@ export const SALES_STATUSES: { value: SalesCustomerStatus; label: string }[] = [
   { value: "lost", label: "Bağlandı" },
 ];
 
+export const SALES_SOURCE_KEYS = [
+  "instagram-organic", "whatsapp", "referral", "website", "sales-outbound", "other",
+] as const;
+
+export const SALES_SOURCE_LABELS: Record<(typeof SALES_SOURCE_KEYS)[number], string> = {
+  "instagram-organic": "Instagram",
+  whatsapp: "WhatsApp",
+  referral: "Tövsiyə",
+  website: "Vebsayt",
+  "sales-outbound": "Satış təmsilçisinin birbaşa əlaqəsi",
+  other: "Digər",
+};
+
+export function salesSourceLabel(key: string, fallback: string) {
+  return SALES_SOURCE_LABELS[key as keyof typeof SALES_SOURCE_LABELS] ?? fallback;
+}
+
 export function bakuDateTimeLocal(value: string | null) {
   if (!value) return "";
   const date = new Date(value);

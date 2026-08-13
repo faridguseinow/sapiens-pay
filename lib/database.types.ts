@@ -170,6 +170,7 @@ export type SalesCustomer = {
   potential_value: number;
   lead_id: string | null;
   source_id: string | null;
+  source_detail: string | null;
   campaign_id: string | null;
   product_id: string | null;
   country: string | null;

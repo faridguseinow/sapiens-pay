@@ -2,8 +2,9 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth/access";
 import { serviceLabel } from "@/lib/services";
 import type { MarketingSource, SalesCustomer, TeamMember } from "@/lib/database.types";
+import { salesSourceLabel } from "@/lib/sales";
 
-type CustomerWithSource = SalesCustomer & { source: Pick<MarketingSource, "name"> | null };
+type CustomerWithSource = SalesCustomer & { source: Pick<MarketingSource, "key" | "name"> | null };
 
 const statusLabel: Record<string, string> = {
   new: "Yeni", contacted: "Əlaqə saxlanılıb", interested: "Maraqlanır",
@@ -13,7 +14,7 @@ const statusLabel: Record<string, string> = {
 export default async function AdminSalesPage() {
   const { supabase } = await requireRole("admin", "/admin/login");
   const [customerResult, repsResult] = await Promise.all([
-    supabase.from("sales_customers").select("*, representative:team_members(*), source:marketing_sources(name)").order("created_at", { ascending: false }),
+    supabase.from("sales_customers").select("*, representative:team_members(*), source:marketing_sources(key,name)").order("created_at", { ascending: false }),
     supabase.from("team_members").select("*").eq("role", "sales").order("name"),
   ]);
   const customers = (customerResult.data ?? []) as CustomerWithSource[];
@@ -53,7 +54,7 @@ export default async function AdminSalesPage() {
             <td><div className="admin-person"><b>{customer.name.slice(0, 1).toUpperCase()}</b><span><strong>{customer.name}</strong><small>{customer.phone}</small>{customer.email ? <small>{customer.email}</small> : null}</span></div></td>
             <td>{customer.representative?.name ?? "—"}</td>
             <td>{serviceLabel(customer.service_key)}</td>
-            <td>{customer.source?.name ?? "—"}</td>
+            <td>{customer.source ? (customer.source.key === "other" ? customer.source_detail || "Digər" : salesSourceLabel(customer.source.key, customer.source.name)) : "—"}</td>
             <td><span className={`sales-status sales-status--${customer.status}`}>{statusLabel[customer.status]}</span></td>
             <td>{Number(customer.potential_value).toLocaleString("az-AZ")} AZN</td>
             <td>{customer.next_contact_at ? new Date(customer.next_contact_at).toLocaleString("az-AZ", { timeZone: "Asia/Baku" }) : "—"}</td>
