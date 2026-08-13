@@ -31,7 +31,7 @@ export default async function AdminSalesPage() {
         <article><span>Aktiv imkanlar</span><strong>{active.length}</strong><small>Satış prosesində</small></article>
         <article><span>Qazanılan</span><strong>{won.length}</strong><small>Müştəriyə çevrilib</small></article>
         <article><span>Konversiya</span><strong>{conversion}%</strong><small>Ümumi nəticə</small></article>
-        <article><span>Pipeline</span><strong>${pipeline.toLocaleString("en-US")}</strong><small>Açıq potensial</small></article>
+        <article><span>Pipeline</span><strong>{pipeline.toLocaleString("az-AZ")} AZN</strong><small>Açıq potensial</small></article>
       </section>
 
       <section className="admin-panel sales-rep-performance">
@@ -52,7 +52,7 @@ export default async function AdminSalesPage() {
             <td>{customer.representative?.name ?? "—"}</td>
             <td>{serviceLabel(customer.service_key)}</td>
             <td><span className={`sales-status sales-status--${customer.status}`}>{statusLabel[customer.status]}</span></td>
-            <td>${Number(customer.potential_value).toLocaleString("en-US")}</td>
+            <td>{Number(customer.potential_value).toLocaleString("az-AZ")} AZN</td>
             <td>{customer.next_contact_at ? new Date(customer.next_contact_at).toLocaleString("az-AZ", { timeZone: "Asia/Baku" }) : "—"}</td>
             <td><Link href={`/admin/sales/${customer.id}`} className="admin-table-action">Aç →</Link></td>
           </tr>)}</tbody>

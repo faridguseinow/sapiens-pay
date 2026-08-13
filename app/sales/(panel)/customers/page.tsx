@@ -52,7 +52,7 @@ export default async function SalesCustomersPage() {
             <td><div className="admin-person"><b>{customer.name.slice(0, 1).toUpperCase()}</b><span><strong>{customer.name}</strong><small>{customer.phone}</small>{customer.email ? <small>{customer.email}</small> : null}</span></div></td>
             <td>{serviceLabel(customer.service_key)}</td>
             <td><span className={`sales-status sales-status--${customer.status}`}>{statuses.find((item) => item.value === customer.status)?.label}</span></td>
-            <td>${Number(customer.potential_value).toLocaleString("en-US")}</td>
+            <td>{Number(customer.potential_value).toLocaleString("az-AZ")} AZN</td>
             <td>{customer.next_contact_at ? new Date(customer.next_contact_at).toLocaleString("az-AZ") : "—"}</td>
             <td><Link className="admin-row-link" href={`/sales/customers/${customer.id}`}>Aç →</Link></td>
           </tr>)}</tbody>
