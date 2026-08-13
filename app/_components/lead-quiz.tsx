@@ -53,38 +53,38 @@ const services: Record<Locale, Choice[]> = {
 const packages: Record<ServiceKey, Record<Locale, Choice[]>> = {
   "foreign-bank-accounts": {
     az: [
-      { value: "Wise Personal", label: "Wise Personal — 149 USD" },
-      { value: "Wise Business", label: "Wise Business — 249 USD" },
-      { value: "Payoneer Business", label: "Payoneer Business — 249 USD" },
+      { value: "Wise Personal", label: "Wise Personal — 253.30 AZN" },
+      { value: "Wise Business", label: "Wise Business — 423.30 AZN" },
+      { value: "Payoneer Business", label: "Payoneer Business — 423.30 AZN" },
       { value: "Məsləhət lazımdır", label: "Hansı hesabın uyğun olduğuna əmin deyiləm" },
     ],
     ru: [
-      { value: "Wise Personal", label: "Wise Personal — 149 USD" },
-      { value: "Wise Business", label: "Wise Business — 249 USD" },
-      { value: "Payoneer Business", label: "Payoneer Business — 249 USD" },
+      { value: "Wise Personal", label: "Wise Personal — 253.30 AZN" },
+      { value: "Wise Business", label: "Wise Business — 423.30 AZN" },
+      { value: "Payoneer Business", label: "Payoneer Business — 423.30 AZN" },
       { value: "Нужна консультация", label: "Не уверен, какой счёт мне подходит" },
     ],
     en: [
-      { value: "Wise Personal", label: "Wise Personal — USD 149" },
-      { value: "Wise Business", label: "Wise Business — USD 249" },
-      { value: "Payoneer Business", label: "Payoneer Business — USD 249" },
+      { value: "Wise Personal", label: "Wise Personal — AZN 253.30" },
+      { value: "Wise Business", label: "Wise Business — AZN 423.30" },
+      { value: "Payoneer Business", label: "Payoneer Business — AZN 423.30" },
       { value: "Consultation needed", label: "I am not sure which account fits" },
     ],
   },
   "shopify-payments": {
     az: [
-      { value: "Şirkətsiz quraşdırma", label: "Şirkətsiz quraşdırma — 279 USD" },
-      { value: "Şirkət üzərindən biznes", label: "Şirkət üzərindən biznes — 349 USD" },
+      { value: "Şirkətsiz quraşdırma", label: "Şirkətsiz quraşdırma — 474.30 AZN" },
+      { value: "Şirkət üzərindən biznes", label: "Şirkət üzərindən biznes — 593.30 AZN" },
       { value: "Məsləhət lazımdır", label: "Uyğun paketi birlikdə seçək" },
     ],
     ru: [
-      { value: "Настройка без компании", label: "Настройка без компании — 279 USD" },
-      { value: "Бизнес через компанию", label: "Бизнес через компанию — 349 USD" },
+      { value: "Настройка без компании", label: "Настройка без компании — 474.30 AZN" },
+      { value: "Бизнес через компанию", label: "Бизнес через компанию — 593.30 AZN" },
       { value: "Нужна консультация", label: "Помогите выбрать пакет" },
     ],
     en: [
-      { value: "Setup without company", label: "Setup without a company — USD 279" },
-      { value: "Company business setup", label: "Company business setup — USD 349" },
+      { value: "Setup without company", label: "Setup without a company — AZN 474.30" },
+      { value: "Company business setup", label: "Company business setup — AZN 593.30" },
       { value: "Consultation needed", label: "Help me choose a package" },
     ],
   },

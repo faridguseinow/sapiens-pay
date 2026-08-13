@@ -61,7 +61,7 @@ export default async function AdminSalesCustomerPage({
           <label><span>Satış təmsilçisi *</span><select name="representativeId" required defaultValue={customer.representative_id}>{representatives.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
           <label><span>Xidmət</span><select name="serviceKey" defaultValue={customer.service_key}>{SAPIENS_SERVICES.map((service) => <option key={service.key} value={service.key}>{service.label}</option>)}</select></label>
           <label><span>Mərhələ</span><select name="status" defaultValue={customer.status}>{statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
-          <label><span>Potensial, USD</span><input name="potentialValue" type="number" min="0" step="0.01" defaultValue={customer.potential_value} /></label>
+          <label><span>Potensial, AZN</span><input name="potentialValue" type="number" min="0" step="0.01" defaultValue={customer.potential_value} /></label>
           <label><span>Növbəti əlaqə</span><input name="nextContactAt" type="datetime-local" defaultValue={localDateTime(customer.next_contact_at)} /></label>
           <label className="sales-customer-form__wide"><span>Qeyd</span><textarea name="notes" rows={6} maxLength={5000} defaultValue={customer.notes ?? ""} /></label>
           <TaskSubmitButton className="admin-button admin-button--primary" pendingLabel="Yadda saxlanılır...">Yadda saxla</TaskSubmitButton>

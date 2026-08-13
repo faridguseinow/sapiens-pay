@@ -29,7 +29,7 @@ export default async function SalesDashboardPage() {
         <article className="admin-stat--accent"><span>Müştərilərim</span><strong>{customers.length}</strong><small>Ümumi qeyd</small></article>
         <article><span>Aktiv danışıqlar</span><strong>{active.length}</strong><small>Satış prosesində</small></article>
         <article><span>Qazanılan</span><strong>{won.length}</strong><small>Müştəriyə çevrilib</small></article>
-        <article><span>Satış potensialı</span><strong>${pipeline.toLocaleString("en-US")}</strong><small>Açıq imkanların cəmi</small></article>
+        <article><span>Satış potensialı</span><strong>{pipeline.toLocaleString("az-AZ")} AZN</strong><small>Açıq imkanların cəmi</small></article>
       </section>
       <div className="sales-dashboard-grid">
         <section className="admin-panel">
