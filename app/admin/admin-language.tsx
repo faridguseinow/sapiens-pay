@@ -37,7 +37,7 @@ const azToRu: Record<string, string> = {
   "Ümumi müştəri": "Всего клиентов", "Aktiv imkanlar": "Активные возможности", "Qazanılan": "Выиграно", "Konversiya": "Конверсия", "Təmsilçi göstəriciləri": "Показатели представителей",
   "Komanda üzrə müqayisə": "Сравнение команды", "Bütün satış müştəriləri": "Все клиенты продаж", "Təmsilçilərin daxil etdiyi məlumatlar": "Данные, внесённые представителями",
   "Təmsilçi": "Представитель", "Potensial": "Потенциал",
-  "Tapşırıq mərkəzi": "Центр задач", "Komandanın işlərini planlaşdırın və izləyin.": "Планируйте и отслеживайте работу команды.", "+ Yeni tapşırıq": "+ Новая задача",
+  "Tapşırıq mərkəzi": "Центр задач", "Komandanın işlərini planlaşdırın və izləyin.": "Планируйте и отслеживайте работу команды.", "+ Yeni tapşırıq": "+ Новая задача", "Arxivlə": "Архивировать", "Yaradılır...": "Создание...", "Yenilənir...": "Обновление...", "Yadda saxlanılır...": "Сохранение...",
   "Başlıq": "Название", "Açıqlama": "Описание", "İcraçı": "Исполнитель", "Son tarix": "Срок", "Vaciblik": "Приоритет", "Tapşırıq yarat": "Создать задачу",
   "Gözləyir": "Ожидает", "İcradadır": "В работе", "Tamamlandı": "Завершено", "Yeniləmə əlavə et": "Добавить обновление",
   "Komanda idarəetməsi": "Управление командой", "İstifadəçiləri və rolları idarə edin.": "Управляйте пользователями и ролями.", "Yeni əməkdaş": "Новый сотрудник",
